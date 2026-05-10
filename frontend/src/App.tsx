@@ -1,3 +1,5 @@
+import HealthBadge from './components/HealthBadge';
+
 export default function App() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900">
@@ -5,6 +7,9 @@ export default function App() {
       <p className="mt-2 text-slate-600">
         Anything you see can teach you English.
       </p>
+      <div className="mt-6">
+        <HealthBadge />
+      </div>
     </main>
   );
 }
