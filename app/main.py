@@ -32,10 +32,14 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
 
+    from app.api import persona as persona_module
     from app.api import vision as vision_module
 
     vision_module.reset_rate_limiter()  # 新 app 实例 = 新限流器
     app.include_router(vision_module.router)
+
+    persona_module.reset_rate_limiter()  # 新 app 实例 = 新限流器
+    app.include_router(persona_module.router)
 
     _mount_spa_if_present(app, settings.frontend_dist_dir)
     return app
