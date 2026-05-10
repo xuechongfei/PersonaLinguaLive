@@ -1,5 +1,17 @@
-"""Provider factory: pick vision adapter based on settings."""
+"""Provider factories: pick adapter based on settings."""
 from __future__ import annotations
+
+from app.adapters.llm.base import LLMAdapter
+from app.adapters.llm.fake import FakeLLMAdapter
+from app.adapters.llm.openai_llm import OpenAILLMAdapter
+
+from app.adapters.stt.base import STTAdapter
+from app.adapters.stt.fake import FakeSTTAdapter
+from app.adapters.stt.openai_stt import OpenAISTTAdapter
+
+from app.adapters.tts.base import TTSAdapter
+from app.adapters.tts.fake import FakeTTSAdapter
+from app.adapters.tts.openai_tts import OpenAITTSAdapter
 
 from app.adapters.vision.base import VisionAdapter
 from app.adapters.vision.fake import FakeVisionAdapter
@@ -11,9 +23,7 @@ def build_vision_adapter(settings: Settings) -> VisionAdapter:
     if settings.ai_vision_provider == "fake":
         return FakeVisionAdapter()
     if settings.ai_vision_provider == "openai":
-        if settings.openai_api_key is None:
-            # 应该已被 Settings.model_validator 拦下,但保险起见再校验
-            raise RuntimeError("openai provider selected but PLL_OPENAI_API_KEY is missing")
+        _require_api_key(settings)
         return OpenAIVisionAdapter(
             api_key=settings.openai_api_key.get_secret_value(),
             base_url=settings.openai_base_url,
@@ -21,3 +31,50 @@ def build_vision_adapter(settings: Settings) -> VisionAdapter:
             timeout_s=settings.openai_request_timeout_s,
         )
     raise RuntimeError(f"unknown vision provider: {settings.ai_vision_provider}")
+
+
+def build_llm_adapter(settings: Settings) -> LLMAdapter:
+    if settings.ai_llm_provider == "fake":
+        return FakeLLMAdapter()
+    if settings.ai_llm_provider == "openai":
+        _require_api_key(settings)
+        return OpenAILLMAdapter(
+            api_key=settings.openai_api_key.get_secret_value(),
+            base_url=settings.openai_base_url,
+            model=settings.openai_model_llm,
+            timeout_s=settings.openai_request_timeout_s,
+        )
+    raise RuntimeError(f"unknown LLM provider: {settings.ai_llm_provider}")
+
+
+def build_tts_adapter(settings: Settings) -> TTSAdapter:
+    if settings.ai_tts_provider == "fake":
+        return FakeTTSAdapter()
+    if settings.ai_tts_provider == "openai":
+        _require_api_key(settings)
+        return OpenAITTSAdapter(
+            api_key=settings.openai_api_key.get_secret_value(),
+            base_url=settings.openai_base_url,
+            model=settings.openai_model_tts,
+            timeout_s=settings.openai_request_timeout_s,
+        )
+    raise RuntimeError(f"unknown TTS provider: {settings.ai_tts_provider}")
+
+
+def build_stt_adapter(settings: Settings) -> STTAdapter:
+    if settings.ai_stt_provider == "fake":
+        return FakeSTTAdapter()
+    if settings.ai_stt_provider == "openai":
+        _require_api_key(settings)
+        return OpenAISTTAdapter(
+            api_key=settings.openai_api_key.get_secret_value(),
+            base_url=settings.openai_base_url,
+            model=settings.openai_model_stt,
+            timeout_s=settings.openai_request_timeout_s,
+        )
+    raise RuntimeError(f"unknown STT provider: {settings.ai_stt_provider}")
+
+
+def _require_api_key(settings: Settings) -> None:
+    if settings.openai_api_key is None:
+        raise RuntimeError("openai provider selected but PLL_OPENAI_API_KEY is missing")
