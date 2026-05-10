@@ -109,3 +109,88 @@ export async function analyzeImage(file: File): Promise<VisionAnalyzeResponse> {
     rejectReasons: body.details?.reject_reasons,
   });
 }
+
+// --- Persona API ---
+
+export interface PersonaGenerateRequest {
+  label: string;
+  persona_seed?: string;
+  scene_summary?: string;
+  user_level?: string;
+}
+
+export interface PersonaGenerateResponse {
+  persona_id: string;
+  persona_name: string;
+  description: string;
+  system_prompt: string;
+  vocab_focus: string[];
+}
+
+export async function generatePersona(data: PersonaGenerateRequest): Promise<PersonaGenerateResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/persona/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch {
+    throw new ApiError({ code: 'NETWORK', message: '网络异常,请稍后重试。', status: 0 });
+  }
+
+  if (res.ok) {
+    return (await res.json()) as PersonaGenerateResponse;
+  }
+
+  let body: { code?: ApiErrorCode; message?: string; details?: { retry_after_s?: number } } = {};
+  try { body = await res.json(); } catch { /* ignore */ }
+
+  throw new ApiError({
+    code: body.code ?? 'UNKNOWN',
+    message: body.message ?? `请求失败:${res.status}`,
+    status: res.status,
+    retryAfter: body.details?.retry_after_s,
+  });
+}
+
+// --- Chat Summary API ---
+
+export interface ChatSummaryRequest {
+  session_id: string;
+  user_level?: string;
+}
+
+export interface ChatSummaryResponse {
+  new_words: string[];
+  grammar_points: string[];
+  fluency_score: number;
+  strengths: string[];
+  areas_to_improve: string[];
+}
+
+export async function fetchSummary(data: ChatSummaryRequest): Promise<ChatSummaryResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/chat/summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch {
+    throw new ApiError({ code: 'NETWORK', message: '网络异常,请稍后重试。', status: 0 });
+  }
+
+  if (res.ok) {
+    return (await res.json()) as ChatSummaryResponse;
+  }
+
+  let body: { code?: ApiErrorCode; message?: string } = {};
+  try { body = await res.json(); } catch { /* ignore */ }
+
+  throw new ApiError({
+    code: body.code ?? 'UNKNOWN',
+    message: body.message ?? `请求失败:${res.status}`,
+    status: res.status,
+  });
+}
