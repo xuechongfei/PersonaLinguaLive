@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     rate_limit_vision_per_min: int = 6
 
     @model_validator(mode="after")
-    def _validate_provider_credentials(self) -> "Settings":
+    def _validate_provider_credentials(self) -> Settings:
         if self.ai_vision_provider == "openai" and self.openai_api_key is None:
             raise ValueError(
                 "PLL_OPENAI_API_KEY is required when AI_VISION_PROVIDER=openai"
