@@ -92,8 +92,8 @@ async def test_cache_eviction_when_over_max_size() -> None:
     svc._max_cache_size = 2
 
     r_a = await svc.generate_persona(_make_request(label="a"))
-    await svc.generate_persona(_make_request(label="b"))  # noqa: F841
-    await svc.generate_persona(_make_request(label="c"))  # noqa: F841
+    await svc.generate_persona(_make_request(label="b"))
+    await svc.generate_persona(_make_request(label="c"))
 
     # "a" was the oldest and should have been evicted
     r_a_again = await svc.generate_persona(_make_request(label="a"))

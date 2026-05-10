@@ -1,9 +1,9 @@
 """FakeTTSAdapter: returns minimal WAV bytes for tests + offline."""
 from __future__ import annotations
 
+import io
 import struct
 import wave
-import io
 
 
 class FakeTTSAdapter:

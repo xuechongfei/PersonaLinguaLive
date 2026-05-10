@@ -1,8 +1,9 @@
 """Tests for FakeTTSAdapter."""
 from __future__ import annotations
 
-import wave
 import io
+import wave
+
 import pytest
 
 

@@ -1673,6 +1673,8 @@ def test_safe_image_returns_objects(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["is_safe"] is True
+
+
     assert body["reject_reasons"] == []
     assert body["scene_summary"]
     assert len(body["objects"]) >= 1

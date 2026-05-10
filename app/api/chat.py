@@ -151,7 +151,7 @@ async def chat_websocket(websocket: WebSocket) -> None:
 async def chat_summary(
     request: Request,
     body: ChatSummaryRequest,
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> ChatSummaryResponse:
     """POST /api/chat/summary -- Generate learning summary from a session."""
     # Rate limit

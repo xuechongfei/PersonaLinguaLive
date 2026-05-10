@@ -7,11 +7,11 @@ interface Props {
 
 export default function MicButton({ onTranscript, disabled = false }: Props) {
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<InstanceType<typeof SpeechRecognition> | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const SpeechRecognitionAPI =
-    (window as unknown as Record<string, unknown>).SpeechRecognition ??
-    (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    (window as any).SpeechRecognition ??
+    (window as any).webkitSpeechRecognition;
   const isSupported = !!SpeechRecognitionAPI;
 
   useEffect(() => {
@@ -29,12 +29,12 @@ export default function MicButton({ onTranscript, disabled = false }: Props) {
 
     if (!SpeechRecognitionAPI) return;
 
-    const recognition = new (SpeechRecognitionAPI as new () => SpeechRecognition)();
+    const recognition = new (SpeechRecognitionAPI as any)();
     recognition.lang = 'en-US';
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       onTranscript(transcript);
       setIsRecording(false);

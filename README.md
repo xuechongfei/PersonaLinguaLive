@@ -52,6 +52,20 @@ cd frontend && npm test
   - `PLL_FAKE_TEXT`:返回 UNSAFE(模拟整页文字)
   - `unsafe_` 文件名前缀同效
 
+## Phase 3: Conversation Engine
+
+- 点击图片中的物体即可生成 AI 拟人化角色并与之对话。
+- **Persona 生成**:LLM 根据物体名称和场景描述生成角色名称、外貌描述和系统提示词,缓存最近 100 个角色。
+- **3 段式对话**:每次 LLM 回复包含 `<speak>`(口语对话)、`<learning>`(知识点)、`<followup>`(追问练习)三个段落。
+- **流式输出**:LLM 流式 Token 通过 WebSocket 实时推送至前端,支持打字机效果。
+- **TTS 语音合成**:助手回复自动转为语音播放,前端 PersonaMouth 组件根据 AnalyserNode 做口型同步。
+- **语音输入 (STT)**:MicButton 组件调用浏览器 Web Speech API,支持语音转文字输入。
+- **上下文管理**:每个会话维护最近 10 轮对话的滑动窗口,超出后由 LLM 自动总结压缩。
+- **学习卡片**:每次回复中的 `<learning>` 和 `<followup>` 以可折叠卡片展示。
+- **对话总结**:结束对话后生成总结卡片,包含生词、语法点、流利度评分(1-10)。
+- **本地持久化**:对话记录、用户偏好通过 IndexedDB 存储在浏览器端。
+- **Provider 切换**:LLM / TTS / STT 均支持 `fake` ↔ `openai` 切换,默认为 `fake`。
+
 ## Docker
 
 ```bash

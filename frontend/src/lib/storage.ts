@@ -66,7 +66,7 @@ export async function getAllImageKeys(): Promise<string[]> {
 }
 
 // Conversations
-export async function saveConversation(sessionId: string, data: ConversationData): Promise<void> {
+export async function saveConversation(_sessionId: string, data: ConversationData): Promise<void> {
   const db = await _openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('conversations', 'readwrite');

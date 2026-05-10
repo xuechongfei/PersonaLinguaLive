@@ -4,15 +4,12 @@ from __future__ import annotations
 from app.adapters.llm.base import LLMAdapter
 from app.adapters.llm.fake import FakeLLMAdapter
 from app.adapters.llm.openai_llm import OpenAILLMAdapter
-
 from app.adapters.stt.base import STTAdapter
 from app.adapters.stt.fake import FakeSTTAdapter
 from app.adapters.stt.openai_stt import OpenAISTTAdapter
-
 from app.adapters.tts.base import TTSAdapter
 from app.adapters.tts.fake import FakeTTSAdapter
 from app.adapters.tts.openai_tts import OpenAITTSAdapter
-
 from app.adapters.vision.base import VisionAdapter
 from app.adapters.vision.fake import FakeVisionAdapter
 from app.adapters.vision.openai_vision import OpenAIVisionAdapter

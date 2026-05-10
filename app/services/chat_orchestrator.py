@@ -56,7 +56,7 @@ class ChatOrchestrator:
             context = self._context.get_context(session_id)
 
             # 2. Build full messages list: system + history + user
-            messages = [system_message] + context + [{"role": "user", "content": user_message}]
+            messages = [system_message, *context, {"role": "user", "content": user_message}]
 
             # 3. Stream from LLM, yield text_chunks, accumulate full text
             full_response = ""

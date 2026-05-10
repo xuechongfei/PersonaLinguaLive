@@ -35,7 +35,7 @@ class MockWebSocket {
 let mockWs: MockWebSocket;
 
 function createMockWebSocketConstructor(): any {
-  const wsMock = vi.fn(() => {
+  const wsMock: any = vi.fn(() => {
     mockWs = new MockWebSocket();
     return mockWs;
   });

@@ -1,7 +1,7 @@
 """Tests for chat system prompt."""
 from __future__ import annotations
 
-from app.prompts.chat_system import build_chat_system_message, build_chat_history_messages
+from app.prompts.chat_system import build_chat_history_messages, build_chat_system_message
 
 
 def test_system_message_contains_persona_name():
