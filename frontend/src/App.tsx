@@ -1,15 +1,28 @@
-import HealthBadge from './components/HealthBadge';
+import { useEffect, useState } from 'react';
+import HomePage from './pages/HomePage';
+import StudioPage from './pages/StudioPage';
+
+type Route = 'home' | 'studio';
+
+function readRoute(): Route {
+  return window.location.hash === '#/studio' ? 'studio' : 'home';
+}
 
 export default function App() {
+  const [route, setRoute] = useState<Route>(readRoute());
+
+  useEffect(() => {
+    const onHash = () => setRoute(readRoute());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  if (route === 'studio') return <StudioPage />;
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900">
-      <h1 className="text-3xl font-bold">PersonaLinguaLive</h1>
-      <p className="mt-2 text-slate-600">
-        Anything you see can teach you English.
-      </p>
-      <div className="mt-6">
-        <HealthBadge />
-      </div>
-    </main>
+    <HomePage
+      onStart={() => {
+        window.location.hash = '#/studio';
+      }}
+    />
   );
 }
