@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +28,31 @@ class Settings(BaseSettings):
     )
     frontend_dist_dir: str = "frontend/dist"
 
+    # === AI 适配层 ===
+    ai_vision_provider: Literal["fake", "openai"] = "fake"
+    openai_api_key: SecretStr | None = None
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_model_vision: str = "gpt-4o"
+    openai_request_timeout_s: float = 30.0
+
+    # === 上传约束 ===
+    upload_max_bytes: int = 10 * 1024 * 1024  # 10 MiB
+    upload_allowed_mime: list[str] = Field(
+        default_factory=lambda: ["image/jpeg", "image/png", "image/webp"]
+    )
+
+    # === 限流(单实例内存桶,IP 维度)===
+    rate_limit_vision_per_min: int = 6
+
+    @model_validator(mode="after")
+    def _validate_provider_credentials(self) -> "Settings":
+        if self.ai_vision_provider == "openai" and self.openai_api_key is None:
+            raise ValueError(
+                "PLL_OPENAI_API_KEY is required when AI_VISION_PROVIDER=openai"
+            )
+        return self
+
 
 def get_settings() -> Settings:
-    """FastAPI Depends 用的工厂。后续可替换为 lru_cache。"""
+    """FastAPI Depends 用的工厂。"""
     return Settings()
