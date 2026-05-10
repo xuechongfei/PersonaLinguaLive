@@ -26,6 +26,10 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestIdMiddleware)
 
+    from app.errors import register_exception_handlers
+
+    register_exception_handlers(app)
+
     app.include_router(health.router)
 
     _mount_spa_if_present(app, settings.frontend_dist_dir)
