@@ -42,6 +42,16 @@ uv run pytest -v
 cd frontend && npm test
 ```
 
+## Phase 2: Vision Pipeline
+
+- 默认使用 `fake` Vision Adapter,无需联网即可端到端跑通。
+- 切换到 OpenAI:在 `.env` 设置 `PLL_AI_VISION_PROVIDER=openai` 与 `PLL_OPENAI_API_KEY=...`。
+- 上传约束:JPEG / PNG / WebP,单张 ≤ 8MB,默认 6 次/分钟/IP。
+- Fake Adapter 触发字节前缀(便于本地手动验证):
+  - `PLL_FAKE_FACE`:返回 UNSAFE(模拟人脸)
+  - `PLL_FAKE_TEXT`:返回 UNSAFE(模拟整页文字)
+  - `unsafe_` 文件名前缀同效
+
 ## Docker
 
 ```bash
