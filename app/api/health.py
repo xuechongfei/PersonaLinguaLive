@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.get("/healthz")
-def healthz(settings: Settings = Depends(get_settings)) -> dict[str, str]:
+def healthz(settings: Settings = Depends(get_settings)) -> dict[str, str]:  # noqa: B008
     return {
         "status": "ok",
         "app": settings.app_name,

@@ -22,7 +22,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
         finally:
             structlog.contextvars.unbind_contextvars("request_id")
-            del token  # noqa: PLW0603
+            del token
 
         response.headers[self.HEADER] = rid
         return response
