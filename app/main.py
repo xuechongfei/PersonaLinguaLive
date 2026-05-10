@@ -42,6 +42,7 @@ def create_app() -> FastAPI:
     persona_module.reset_rate_limiter()  # 新 app 实例 = 新限流器
     app.include_router(persona_module.router)
 
+    chat_module.reset_context_manager()  # 新 app 实例 = 新上下文管理器
     chat_module.reset_rate_limiter()  # 新 app 实例 = 新限流器
     app.include_router(chat_module.router)
 
