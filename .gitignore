@@ -13,6 +13,7 @@ htmlcov/
 node_modules/
 frontend/dist/
 .npm/
+*.tsbuildinfo
 
 # Editor / OS
 .idea/
