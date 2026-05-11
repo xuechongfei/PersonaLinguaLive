@@ -10,6 +10,7 @@ from app.adapters.factory import build_llm_adapter, build_tts_adapter
 from app.config import Settings, get_settings
 from app.errors import RateLimitedError
 from app.prompts.chat_summary import build_summary_messages
+from app.prompts.learner_context import build_learner_context_message
 from app.schemas.chat import ChatSummaryRequest, ChatSummaryResponse
 from app.services.chat_orchestrator import ChatOrchestrator
 from app.services.context_manager import ContextManager
@@ -73,13 +74,17 @@ async def chat_websocket(websocket: WebSocket) -> None:
     Protocol:
         1. Client sends init frame:
             {"type": "init", "session_id": str, "system_message": dict,
-             "user_level": str (optional, default "beginner")}
+             "user_level": str (optional, default "beginner"),
+             "learner_context": {"level": str, "recent_vocab": list[str],
+                                  "weak_areas": list[str]} (optional)}
 
         2. Client sends user messages:
             {"type": "user_message", "content": str}
 
         3. Server streams event frames:
             {"type": "text_chunk", "content": str}
+            {"type": "speak_text", "content": str}     # emitted once </speak> closes
+            {"type": "audio", "audio_base64": str}     # emitted as soon as TTS done
             {"type": "result", "segments": {...}, "audio_base64": str}
             {"type": "error", "message": str}
     """
@@ -98,6 +103,12 @@ async def chat_websocket(websocket: WebSocket) -> None:
         session_id = init_data["session_id"]
         system_message: dict = init_data["system_message"]
         user_level: str = init_data.get("user_level", "beginner")
+        learner_context_raw = init_data.get("learner_context") or {}
+        learner_context_message = build_learner_context_message(
+            level=learner_context_raw.get("level") or user_level,
+            recent_vocab=learner_context_raw.get("recent_vocab"),
+            weak_areas=learner_context_raw.get("weak_areas"),
+        )
 
         settings = Settings()
 
@@ -131,7 +142,12 @@ async def chat_websocket(websocket: WebSocket) -> None:
 
             log.info("chat.user_message", session_id=session_id, length=len(user_message))
 
-            async for event in orchestrator.chat_stream(session_id, user_message, system_message):
+            async for event in orchestrator.chat_stream(
+                session_id,
+                user_message,
+                system_message,
+                learner_context_message=learner_context_message,
+            ):
                 await websocket.send_json(event)
 
     except WebSocketDisconnect:

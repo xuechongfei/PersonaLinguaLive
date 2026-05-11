@@ -3,8 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import SummaryCard from '../components/SummaryCard';
 import type { SummaryData } from '../components/SummaryCard';
 
+vi.mock('../lib/storage', () => ({
+  saveWord: vi.fn(async () => {}),
+}));
+
 const fullSummary: SummaryData = {
-  newWords: ['teacup', 'saucer', 'brew'],
+  newWords: [
+    { word: 'teacup', definition: 'small tea cup', example: 'Use a teacup.' },
+    { word: 'saucer', definition: 'plate under a cup', example: '' },
+    { word: 'brew', definition: 'to make tea', example: '' },
+  ],
   grammarPoints: ['Present simple tense'],
   fluencyScore: 8,
   strengths: ['Good vocabulary', 'Clear pronunciation'],

@@ -22,7 +22,11 @@ _FAKE_CHAT_RESPONSE: str = (
 
 _FAKE_SUMMARY_RESPONSE: str = json.dumps(
     {
-        "new_words": ["teacup", "saucer", "brew"],
+        "new_words": [
+            {"word": "teacup", "definition": "small cup for tea", "example": "I sip from a teacup."},
+            {"word": "saucer", "definition": "small plate under a cup", "example": "Place the cup on a saucer."},
+            {"word": "brew", "definition": "to make tea or coffee", "example": "Let the tea brew for two minutes."},
+        ],
         "grammar_points": ["Present simple for describing routines"],
         "fluency_score": 7,
         "strengths": ["Good vocabulary", "Clear pronunciation"],

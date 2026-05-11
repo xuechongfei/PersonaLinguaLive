@@ -156,13 +156,19 @@ export async function generatePersona(data: PersonaGenerateRequest): Promise<Per
 
 // --- Chat Summary API ---
 
+export interface VocabEntry {
+  word: string;
+  definition: string;
+  example: string;
+}
+
 export interface ChatSummaryRequest {
   session_id: string;
   user_level?: string;
 }
 
 export interface ChatSummaryResponse {
-  new_words: string[];
+  new_words: VocabEntry[];
   grammar_points: string[];
   fluency_score: number;
   strengths: string[];

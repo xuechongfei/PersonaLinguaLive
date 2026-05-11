@@ -1,6 +1,8 @@
+import type { LearnerContext } from './learnerContext';
+
 const BASE_URL = import.meta.env.VITE_API_BASE ?? '';
 
-export type ChatEventType = 'text_chunk' | 'result' | 'error';
+export type ChatEventType = 'text_chunk' | 'speak_text' | 'audio' | 'result' | 'error';
 
 export interface ChatEvent {
   type: ChatEventType;
@@ -21,6 +23,7 @@ export class ChatClient {
   private sessionId: string = '';
   private systemMessage: object = {};
   private userLevel: string = 'beginner';
+  private learnerContext: LearnerContext | null = null;
 
   get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
@@ -44,10 +47,16 @@ export class ChatClient {
     }
   }
 
-  connect(sessionId: string, systemMessage: object, userLevel: string = 'beginner'): void {
+  connect(
+    sessionId: string,
+    systemMessage: object,
+    userLevel: string = 'beginner',
+    learnerContext: LearnerContext | null = null,
+  ): void {
     this.sessionId = sessionId;
     this.systemMessage = systemMessage;
     this.userLevel = userLevel;
+    this.learnerContext = learnerContext;
     this._connect();
   }
 
@@ -65,6 +74,7 @@ export class ChatClient {
         session_id: this.sessionId,
         system_message: this.systemMessage,
         user_level: this.userLevel,
+        ...(this.learnerContext ? { learner_context: this.learnerContext } : {}),
       }));
     };
 

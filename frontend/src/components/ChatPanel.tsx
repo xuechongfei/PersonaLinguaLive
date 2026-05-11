@@ -9,25 +9,61 @@ interface ChatMessage {
   content: string;
   learning?: string;
   followup?: string;
-  audioBase64?: string;
 }
 
 interface Props {
   client: ChatClient;
   personaName: string;
-  analyserNode?: AnalyserNode;
   onEndChat?: () => void;
+  onTurnComplete?: (turn: {
+    userMessage: string;
+    assistantResponse: { speak: string; learning: string; followup: string };
+    timestamp: number;
+  }) => void;
 }
 
-export default function ChatPanel({ client, personaName, analyserNode, onEndChat }: Props) {
+export default function ChatPanel({ client, personaName, onEndChat, onTurnComplete }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showTip, setShowTip] = useState<{ learning: string; followup: string } | null>(null);
   const [streamingText, setStreamingText] = useState('');
+  const [analyserNode, setAnalyserNode] = useState<AnalyserNode | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamContentRef = useRef('');
+  const lastUserMessageRef = useRef('');
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const onTurnCompleteRef = useRef(onTurnComplete);
+  onTurnCompleteRef.current = onTurnComplete;
+
+  const ensureAnalyser = useCallback((): { ctx: AudioContext; analyser: AnalyserNode } | null => {
+    try {
+      const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) return null;
+      if (!audioContextRef.current) {
+        audioContextRef.current = new Ctor();
+      }
+      if (!analyserRef.current) {
+        const analyser = audioContextRef.current.createAnalyser();
+        analyser.fftSize = 256;
+        analyserRef.current = analyser;
+        setAnalyserNode(analyser);
+      }
+      return { ctx: audioContextRef.current, analyser: analyserRef.current };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      audioContextRef.current?.close().catch(() => {});
+      audioContextRef.current = null;
+      analyserRef.current = null;
+    };
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -47,7 +83,6 @@ export default function ChatPanel({ client, personaName, analyserNode, onEndChat
 
     const handleResult = (event: ChatEvent) => {
       const segments = event.segments || { speak: '', learning: '', followup: '' };
-      const audioBase64 = event.audio_base64;
 
       setMessages((prev) => [
         ...prev,
@@ -56,9 +91,18 @@ export default function ChatPanel({ client, personaName, analyserNode, onEndChat
           content: segments.speak || streamContentRef.current,
           learning: segments.learning,
           followup: segments.followup,
-          audioBase64,
         },
       ]);
+
+      onTurnCompleteRef.current?.({
+        userMessage: lastUserMessageRef.current,
+        assistantResponse: {
+          speak: segments.speak,
+          learning: segments.learning,
+          followup: segments.followup,
+        },
+        timestamp: Date.now(),
+      });
 
       streamContentRef.current = '';
       setStreamingText('');
@@ -67,14 +111,33 @@ export default function ChatPanel({ client, personaName, analyserNode, onEndChat
       if (segments.learning || segments.followup) {
         setShowTip({ learning: segments.learning, followup: segments.followup });
       }
+    };
 
-      // Play TTS audio
-      if (audioBase64) {
-        setIsSpeaking(true);
-        const audio = new Audio(`data:audio/wav;base64,${audioBase64}`);
-        audio.onended = () => setIsSpeaking(false);
-        audio.play().catch(() => setIsSpeaking(false));
+    const handleAudio = (event: ChatEvent) => {
+      const audioBase64 = event.audio_base64;
+      if (!audioBase64) return;
+      setIsSpeaking(true);
+      const audio = new Audio(`data:audio/wav;base64,${audioBase64}`);
+      audio.crossOrigin = 'anonymous';
+      audio.onended = () => setIsSpeaking(false);
+
+      // Wire the element through Web Audio so PersonaMouth can lip-sync.
+      // Falls back to plain playback if Web Audio is unavailable.
+      const wiring = ensureAnalyser();
+      if (wiring) {
+        try {
+          const source = wiring.ctx.createMediaElementSource(audio);
+          source.connect(wiring.analyser);
+          wiring.analyser.connect(wiring.ctx.destination);
+          if (wiring.ctx.state === 'suspended') {
+            wiring.ctx.resume().catch(() => {});
+          }
+        } catch {
+          /* fall back to direct playback */
+        }
       }
+
+      audio.play().catch(() => setIsSpeaking(false));
     };
 
     const handleError = () => {
@@ -84,20 +147,23 @@ export default function ChatPanel({ client, personaName, analyserNode, onEndChat
     };
 
     client.on('text_chunk', handleChunk);
+    client.on('audio', handleAudio);
     client.on('result', handleResult);
     client.on('error', handleError);
 
     return () => {
       client.off('text_chunk', handleChunk);
+      client.off('audio', handleAudio);
       client.off('result', handleResult);
       client.off('error', handleError);
     };
-  }, [client]);
+  }, [client, ensureAnalyser]);
 
   const sendMessage = useCallback(
     (text: string) => {
       if (!text.trim() || isStreaming) return;
       setMessages((prev) => [...prev, { role: 'user', content: text }]);
+      lastUserMessageRef.current = text;
       streamContentRef.current = '';
       setStreamingText('');
       setIsStreaming(true);

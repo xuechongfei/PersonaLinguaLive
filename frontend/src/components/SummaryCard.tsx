@@ -1,5 +1,9 @@
+import { useEffect } from 'react';
+import type { VocabEntry } from '../lib/api';
+import { saveWord } from '../lib/storage';
+
 export interface SummaryData {
-  newWords: string[];
+  newWords: VocabEntry[];
   grammarPoints: string[];
   fluencyScore: number;
   strengths: string[];
@@ -11,6 +15,8 @@ interface Props {
   personaName: string;
   onClose?: () => void;
   onPracticeAgain?: () => void;
+  sessionId?: string;
+  autoSaveWords?: boolean;
 }
 
 function scoreColor(score: number): string {
@@ -19,7 +25,34 @@ function scoreColor(score: number): string {
   return 'bg-green-100 text-green-700 border-green-300';
 }
 
-export default function SummaryCard({ summary, personaName, onClose, onPracticeAgain }: Props) {
+export default function SummaryCard({
+  summary,
+  personaName,
+  onClose,
+  onPracticeAgain,
+  sessionId,
+  autoSaveWords = true,
+}: Props) {
+  useEffect(() => {
+    if (!autoSaveWords) return;
+    const now = Date.now();
+    summary.newWords.forEach((entry) => {
+      saveWord({
+        word: entry.word,
+        definition: entry.definition,
+        example: entry.example,
+        sessionId: sessionId ?? '',
+        addedAt: now,
+        dueAt: now,
+        ease: 2.5,
+        intervalDays: 0,
+        reps: 0,
+      }).catch(() => {
+        /* non-fatal */
+      });
+    });
+  }, [summary.newWords, sessionId, autoSaveWords]);
+
   const hasContent =
     summary.newWords.length > 0 ||
     summary.grammarPoints.length > 0 ||
@@ -67,16 +100,22 @@ export default function SummaryCard({ summary, personaName, onClose, onPracticeA
             {summary.newWords.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-slate-700">New Words</h3>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {summary.newWords.map((word) => (
-                    <span
-                      key={word}
-                      className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
+                <ul className="mt-1 space-y-1.5">
+                  {summary.newWords.map((entry) => (
+                    <li
+                      key={entry.word}
+                      className="rounded-md bg-indigo-50 px-3 py-2 text-xs text-indigo-900"
                     >
-                      {word}
-                    </span>
+                      <p className="font-semibold">{entry.word}</p>
+                      {entry.definition && (
+                        <p className="mt-0.5 text-indigo-800">{entry.definition}</p>
+                      )}
+                      {entry.example && (
+                        <p className="mt-0.5 italic text-indigo-700">"{entry.example}"</p>
+                      )}
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
 

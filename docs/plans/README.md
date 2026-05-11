@@ -16,6 +16,7 @@ V1 MVP(M1-M10)横跨前端、后端、AI 编排、数据持久化等多个独立
 | 1 | 项目地基 | — | `docker run` 起服务,前端能打开,/healthz 通,CI 绿 | ✅ 已完成:`2026-05-09-phase-1-foundation.md` |
 | 2 | 视觉链路 | M1 + M2 + M3 | 上传图片 → 安全检查 → 显示可点击热区 | ✅ 已完成:`2026-05-09-phase-2-vision-pipeline.md` |
 | 3 | 对话引擎 | M4 + M5 + M6 + M7 + M8 + M9 + M10 | 点击热区 → 生成人设 → WebSocket 语音对话 → 学习卡片 → 总结卡 | ✅ 已完成:`2026-05-09-phase-3-conversation-engine.md` |
+| 4 | 自适应教练 | 学习者档案 + 历史 + 生词本 + SRS + 自适应提示词 + 首字音频低延迟 | 选择英语水平 → 自动持久化历史 → 个人生词复习 → Persona 复用学过的词 | ✅ 已完成:`2026-05-11-phase-4-adaptive-coach.md` |
 
 ## 执行原则(所有 Phase 通用)
 

@@ -79,7 +79,7 @@ const mockPersonaResponse = {
 };
 
 const mockSummaryResponse = {
-  new_words: ['teacup'],
+  new_words: [{ word: 'teacup', definition: 'small cup', example: 'A teacup.' }],
   grammar_points: ['Greetings'],
   fluency_score: 7,
   strengths: ['Vocabulary'],

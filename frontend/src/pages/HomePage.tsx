@@ -18,6 +18,14 @@ export default function HomePage({ onStart }: Props) {
       >
         开始上传
       </button>
+      <div className="mt-4 flex gap-4 text-sm">
+        <a href="#/history" className="text-indigo-600 hover:underline">
+          History
+        </a>
+        <a href="#/vocab" className="text-indigo-600 hover:underline">
+          Vocabulary
+        </a>
+      </div>
       <div className="mt-6">
         <HealthBadge />
       </div>

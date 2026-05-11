@@ -1,3 +1,17 @@
+export interface VocabEntry {
+  word: string;
+  definition: string;
+  example: string;
+}
+
+export interface ConversationSummary {
+  newWords: VocabEntry[];
+  grammarPoints: string[];
+  fluencyScore: number;
+  strengths: string[];
+  areasToImprove: string[];
+}
+
 export interface ConversationData {
   sessionId: string;
   personaId: string;
@@ -9,10 +23,23 @@ export interface ConversationData {
   }>;
   createdAt: number;
   updatedAt: number;
+  summary?: ConversationSummary;
+}
+
+export interface VocabRecord {
+  word: string;
+  definition: string;
+  example: string;
+  sessionId: string;
+  addedAt: number;
+  dueAt: number;
+  ease: number;
+  intervalDays: number;
+  reps: number;
 }
 
 const DB_NAME = 'PersonaLinguaLiveDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 function _openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -27,6 +54,9 @@ function _openDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains('preferences')) {
         db.createObjectStore('preferences');
+      }
+      if (!db.objectStoreNames.contains('vocabulary')) {
+        db.createObjectStore('vocabulary', { keyPath: 'word' });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -133,5 +163,76 @@ export async function clearAll(): Promise<void> {
     clearStore('images'),
     clearStore('conversations'),
     clearStore('preferences'),
+    clearStore('vocabulary'),
   ]);
+}
+
+// Vocabulary
+export async function saveWord(entry: VocabRecord): Promise<void> {
+  const db = await _openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('vocabulary', 'readwrite');
+    const store = tx.objectStore('vocabulary');
+    // Preserve SRS state when the word already exists
+    const getReq = store.get(entry.word);
+    getReq.onsuccess = () => {
+      const existing = getReq.result as VocabRecord | undefined;
+      const merged: VocabRecord = existing
+        ? {
+            ...existing,
+            // Only refresh definition/example when the new entry has content
+            definition: entry.definition || existing.definition,
+            example: entry.example || existing.example,
+          }
+        : entry;
+      store.put(merged);
+    };
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+export async function getWord(word: string): Promise<VocabRecord | undefined> {
+  const db = await _openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('vocabulary', 'readonly');
+    const req = tx.objectStore('vocabulary').get(word);
+    req.onsuccess = () => { db.close(); resolve(req.result ?? undefined); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  });
+}
+
+export async function getAllWords(): Promise<VocabRecord[]> {
+  const db = await _openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('vocabulary', 'readonly');
+    const req = tx.objectStore('vocabulary').getAll();
+    req.onsuccess = () => { db.close(); resolve((req.result as VocabRecord[]) ?? []); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  });
+}
+
+export async function getDueWords(now: number = Date.now()): Promise<VocabRecord[]> {
+  const all = await getAllWords();
+  return all.filter((w) => w.dueAt <= now);
+}
+
+export async function updateWordSchedule(
+  word: string,
+  updates: Pick<VocabRecord, 'ease' | 'intervalDays' | 'dueAt' | 'reps'>,
+): Promise<void> {
+  const db = await _openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('vocabulary', 'readwrite');
+    const store = tx.objectStore('vocabulary');
+    const getReq = store.get(word);
+    getReq.onsuccess = () => {
+      const existing = getReq.result as VocabRecord | undefined;
+      if (existing) {
+        store.put({ ...existing, ...updates });
+      }
+    };
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
 }

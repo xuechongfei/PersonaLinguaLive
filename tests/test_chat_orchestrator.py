@@ -265,3 +265,85 @@ async def test_error_during_streaming() -> None:
     assert len(error_events) == 1
     assert "LLM streaming failed" in error_events[0]["message"]
     assert len(result_events) == 0  # No result on failure
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_prepends_learner_context_message() -> None:
+    """When a learner_context_message is supplied, it is the first message sent to the LLM."""
+    from app.services.chat_orchestrator import ChatOrchestrator
+
+    llm = _StubLLM(response="<speak>Hi</speak><learning></learning><followup></followup>")
+    tts = _StubTTS()
+    ctx = _StubContext(context=[{"role": "assistant", "content": "prior"}])
+    orch = ChatOrchestrator(llm=llm, tts=tts, context=ctx)
+
+    learner_ctx = {"role": "system", "content": "Learner is at intermediate."}
+    system = {"role": "system", "content": "You are a persona."}
+
+    async for _ in orch.chat_stream("s1", "Hi", system, learner_context_message=learner_ctx):
+        pass
+
+    sent = llm.calls[0]
+    assert sent[0] == learner_ctx
+    assert sent[1] == system
+    assert sent[-1] == {"role": "user", "content": "Hi"}
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_omits_learner_context_when_none() -> None:
+    """When no learner_context_message is supplied, the system message is first."""
+    from app.services.chat_orchestrator import ChatOrchestrator
+
+    llm = _StubLLM(response="<speak>Hi</speak><learning></learning><followup></followup>")
+    tts = _StubTTS()
+    ctx = _StubContext(context=[])
+    orch = ChatOrchestrator(llm=llm, tts=tts, context=ctx)
+
+    system = {"role": "system", "content": "You are a persona."}
+    async for _ in orch.chat_stream("s1", "Hi", system):
+        pass
+
+    sent = llm.calls[0]
+    assert sent[0] == system
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_emits_audio_before_result() -> None:
+    """`audio` event arrives before the final `result` event so the client
+    can begin playback while the orchestrator finishes packaging segments."""
+    from app.services.chat_orchestrator import ChatOrchestrator
+
+    llm = _StubLLM(response=_REALISTIC_RESPONSE)
+    tts = _StubTTS()
+    ctx = _StubContext(context=[])
+    orch = ChatOrchestrator(llm=llm, tts=tts, context=ctx)
+
+    types: list[str] = []
+    async for event in orch.chat_stream("s1", "Hi", {"role": "system", "content": "x"}):
+        types.append(event["type"])
+
+    assert "audio" in types
+    assert "result" in types
+    assert types.index("audio") < types.index("result")
+    # speak_text is emitted as soon as </speak> closes during streaming
+    assert "speak_text" in types
+    assert types.index("speak_text") < types.index("audio")
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_speak_text_carries_speak_segment() -> None:
+    from app.services.chat_orchestrator import ChatOrchestrator
+
+    llm = _StubLLM(response=_REALISTIC_RESPONSE)
+    tts = _StubTTS()
+    ctx = _StubContext(context=[])
+    orch = ChatOrchestrator(llm=llm, tts=tts, context=ctx)
+
+    speak_event = None
+    async for event in orch.chat_stream("s1", "Hi", {"role": "system", "content": "x"}):
+        if event["type"] == "speak_text":
+            speak_event = event
+            break
+
+    assert speak_event is not None
+    assert speak_event["content"] == "Hello! How are you today?"

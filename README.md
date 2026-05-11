@@ -66,6 +66,16 @@ cd frontend && npm test
 - **本地持久化**:对话记录、用户偏好通过 IndexedDB 存储在浏览器端。
 - **Provider 切换**:LLM / TTS / STT 均支持 `fake` ↔ `openai` 切换,默认为 `fake`。
 
+## Phase 4: Adaptive Coach
+
+- **Learner Profile**:`LevelSelector` 在首页显示,选择的英语水平(beginner / intermediate / advanced)经 IndexedDB 持久化,跨刷新保留并注入到 Persona 生成与对话 system prompt。
+- **会话历史**:每次完成对话后自动写入 IndexedDB,`#/history` 路由按时间倒序列出过往会话,点击行打开只读 Summary。
+- **个人生词本**:对话总结里的 `new_words` 变为 `{word, definition, example}` 结构;`SummaryCard` 自动入库,`#/vocab` 提供 “All / Review” 两个 Tab。
+- **SM2-lite 间隔复习**:复习页提供 Again / Hard / Good / Easy 四档评分,SRS 调度更新 `ease / intervalDays / dueAt`,再次保存同一单词不会重置进度。
+- **自适应提示词**:开始对话前前端 `collectLearnerContext()` 收集最近 20 个生词与最近一次会话的 `areasToImprove`,作为 system role 消息前置注入到 LLM 上下文,Persona 会自然复用学过的词。
+- **首字音频低延迟**:`ChatOrchestrator` 在 `</speak>` 闭合的瞬间用 `asyncio.create_task` 启动 TTS,边继续流式 `learning / followup` 边等音频;新增 `speak_text` / `audio` 两个事件,音频先到、`result` 后到。
+- **口型同步**:`ChatPanel` 内部持有一个懒加载的 `AudioContext + AnalyserNode`,将播放的 `<audio>` 元素接入 Web Audio,`PersonaMouth` 用频谱平均值驱动嘴部张合。
+
 ## Docker
 
 ```bash
