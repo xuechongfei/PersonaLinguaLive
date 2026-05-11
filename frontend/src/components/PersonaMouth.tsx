@@ -3,11 +3,22 @@ import { useEffect, useRef } from 'react';
 interface Props {
   isSpeaking: boolean;
   analyserNode?: AnalyserNode;
+  size?: number;
+  className?: string;
 }
 
-export default function PersonaMouth({ isSpeaking, analyserNode }: Props) {
-  const mouthRef = useRef<SVGEllipseElement>(null);
+const EYE_RADIUS_OPEN = 5;
+const EYE_RADIUS_CLOSED = 0.5;
+const EYE_RADIUS_WIDE = 7;
+const EYE_BASE_LEFT = { cx: 40, cy: 45 };
+const EYE_BASE_RIGHT = { cx: 80, cy: 45 };
 
+export default function PersonaMouth({ isSpeaking, analyserNode, size = 112, className }: Props) {
+  const mouthRef = useRef<SVGEllipseElement>(null);
+  const leftEyeRef = useRef<SVGCircleElement>(null);
+  const rightEyeRef = useRef<SVGCircleElement>(null);
+
+  // Mouth animation (unchanged logic)
   useEffect(() => {
     const mouth = mouthRef.current;
     if (!mouth) return;
@@ -18,14 +29,12 @@ export default function PersonaMouth({ isSpeaking, analyserNode }: Props) {
     }
 
     if (analyserNode) {
-      // Use Web Audio API AnalyserNode to drive mouth
       const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
       let animId: number;
 
       const animate = () => {
         analyserNode.getByteFrequencyData(dataArray);
         const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        // Normalize avg (0-255) to mouth height (4-16)
         const ry = 4 + (avg / 255) * 12;
         mouth.setAttribute('ry', String(ry));
         animId = requestAnimationFrame(animate);
@@ -35,7 +44,6 @@ export default function PersonaMouth({ isSpeaking, analyserNode }: Props) {
       return () => cancelAnimationFrame(animId);
     }
 
-    // Fallback: CSS-like pulse animation via rAF
     let direction = 1;
     let currentRy = 4;
     let animId: number;
@@ -52,20 +60,97 @@ export default function PersonaMouth({ isSpeaking, analyserNode }: Props) {
     return () => cancelAnimationFrame(animId);
   }, [isSpeaking, analyserNode]);
 
+  // Eye widening when speaking
+  useEffect(() => {
+    const left = leftEyeRef.current;
+    const right = rightEyeRef.current;
+    if (!left || !right) return;
+
+    const r = isSpeaking ? EYE_RADIUS_WIDE : EYE_RADIUS_OPEN;
+    left.setAttribute('r', String(r));
+    right.setAttribute('r', String(r));
+  }, [isSpeaking]);
+
+  // Blink animation
+  useEffect(() => {
+    const left = leftEyeRef.current;
+    const right = rightEyeRef.current;
+    if (!left || !right) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const scheduleBlink = () => {
+      const minInterval = isSpeaking ? 800 : 2000;
+      const maxInterval = isSpeaking ? 2000 : 5000;
+      const delay = minInterval + Math.random() * (maxInterval - minInterval);
+
+      timeoutId = setTimeout(() => {
+        left.setAttribute('r', String(EYE_RADIUS_CLOSED));
+        right.setAttribute('r', String(EYE_RADIUS_CLOSED));
+
+        setTimeout(() => {
+          const openR = isSpeaking ? EYE_RADIUS_WIDE : EYE_RADIUS_OPEN;
+          left.setAttribute('r', String(openR));
+          right.setAttribute('r', String(openR));
+          scheduleBlink();
+        }, 150);
+      }, delay);
+    };
+
+    scheduleBlink();
+    return () => clearTimeout(timeoutId);
+  }, [isSpeaking]);
+
+  // Gaze drift
+  useEffect(() => {
+    const left = leftEyeRef.current;
+    const right = rightEyeRef.current;
+    if (!left || !right) return;
+
+    const offset = { x: 0, y: 0 };
+    const target = { x: 0, y: 0 };
+    let animId: number;
+    let driftTimeout: ReturnType<typeof setTimeout>;
+
+    const pickNewTarget = () => {
+      target.x = (Math.random() - 0.5) * 6;
+      target.y = (Math.random() - 0.5) * 6;
+      driftTimeout = setTimeout(pickNewTarget, 3000 + Math.random() * 2000);
+    };
+
+    const animate = () => {
+      const lerp = 0.05;
+      offset.x += (target.x - offset.x) * lerp;
+      offset.y += (target.y - offset.y) * lerp;
+
+      left.setAttribute('cx', String(EYE_BASE_LEFT.cx + offset.x));
+      left.setAttribute('cy', String(EYE_BASE_LEFT.cy + offset.y));
+      right.setAttribute('cx', String(EYE_BASE_RIGHT.cx + offset.x));
+      right.setAttribute('cy', String(EYE_BASE_RIGHT.cy + offset.y));
+
+      animId = requestAnimationFrame(animate);
+    };
+
+    pickNewTarget();
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      clearTimeout(driftTimeout);
+    };
+  }, []);
+
   return (
     <svg
       viewBox="0 0 120 120"
-      className="w-28 h-28"
+      className={className}
+      style={{ width: size, height: size }}
       role="img"
       aria-label={isSpeaking ? 'Persona is speaking' : 'Persona is silent'}
     >
-      {/* Face circle */}
       <circle cx="60" cy="60" r="55" fill="#FFF3E0" stroke="#FFB74D" strokeWidth="2" />
-      {/* Left eye */}
-      <circle cx="40" cy="45" r="5" fill="#333" />
-      {/* Right eye */}
-      <circle cx="80" cy="45" r="5" fill="#333" />
-      {/* Mouth */}
+      <circle ref={leftEyeRef} cx={40} cy={45} r={5} fill="#333" />
+      <circle ref={rightEyeRef} cx={80} cy={45} r={5} fill="#333" />
       <ellipse
         ref={mouthRef}
         cx="60"

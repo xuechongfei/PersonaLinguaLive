@@ -1,0 +1,8 @@
+[
+  { "id": "kitchen", "name": "Kitchen", "filename": "kitchen.webp", "description": "Counter with appliances and utensils" },
+  { "id": "desk", "name": "Study Desk", "filename": "desk.webp", "description": "Laptop, books, stationery, coffee mug" },
+  { "id": "living-room", "name": "Living Room", "filename": "living-room.webp", "description": "Sofa, TV, plants, bookshelf" },
+  { "id": "cafe", "name": "Cafe", "filename": "cafe.webp", "description": "Coffee cup, pastry, newspaper, laptop" },
+  { "id": "park", "name": "Park", "filename": "park.webp", "description": "Bench, tree, bicycle, fountain" },
+  { "id": "bedroom", "name": "Bedroom", "filename": "bedroom.webp", "description": "Bed, wardrobe, mirror, lamp" }
+]

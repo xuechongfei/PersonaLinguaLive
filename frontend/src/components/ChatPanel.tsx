@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ChatClient, type ChatEvent } from '../lib/chat';
+import { useStudioStore } from '../lib/store';
 import PersonaMouth from './PersonaMouth';
 import LearningTip from './LearningTip';
 import MicButton from './MicButton';
@@ -26,10 +27,10 @@ export default function ChatPanel({ client, personaName, onEndChat, onTurnComple
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const isSpeaking = useStudioStore((s) => s.isSpeaking);
   const [showTip, setShowTip] = useState<{ learning: string; followup: string } | null>(null);
   const [streamingText, setStreamingText] = useState('');
-  const [analyserNode, setAnalyserNode] = useState<AnalyserNode | undefined>(undefined);
+  const analyserNode = useStudioStore((s) => s.analyserNode);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamContentRef = useRef('');
   const lastUserMessageRef = useRef('');
@@ -49,7 +50,7 @@ export default function ChatPanel({ client, personaName, onEndChat, onTurnComple
         const analyser = audioContextRef.current.createAnalyser();
         analyser.fftSize = 256;
         analyserRef.current = analyser;
-        setAnalyserNode(analyser);
+        useStudioStore.getState().setAnalyserNode(analyser);
       }
       return { ctx: audioContextRef.current, analyser: analyserRef.current };
     } catch {
@@ -116,10 +117,10 @@ export default function ChatPanel({ client, personaName, onEndChat, onTurnComple
     const handleAudio = (event: ChatEvent) => {
       const audioBase64 = event.audio_base64;
       if (!audioBase64) return;
-      setIsSpeaking(true);
+      useStudioStore.getState().setIsSpeaking(true);
       const audio = new Audio(`data:audio/wav;base64,${audioBase64}`);
       audio.crossOrigin = 'anonymous';
-      audio.onended = () => setIsSpeaking(false);
+      audio.onended = () => useStudioStore.getState().setIsSpeaking(false);
 
       // Wire the element through Web Audio so PersonaMouth can lip-sync.
       // Falls back to plain playback if Web Audio is unavailable.
@@ -137,7 +138,7 @@ export default function ChatPanel({ client, personaName, onEndChat, onTurnComple
         }
       }
 
-      audio.play().catch(() => setIsSpeaking(false));
+      audio.play().catch(() => useStudioStore.getState().setIsSpeaking(false));
     };
 
     const handleError = () => {

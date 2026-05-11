@@ -49,11 +49,20 @@ vi.mock('../components/SummaryCard', () => ({
   ),
 }));
 
+vi.mock('../components/SceneGallery', () => ({
+  default: () => <div data-testid="scene-gallery" />,
+}));
+
+vi.mock('../components/SpeakingOverlay', () => ({
+  default: () => null,
+}));
+
 vi.mock('../lib/image/compress', () => ({
   compressIfNeeded: async (f: File) => f,
 }));
 
 import { analyzeImage, generatePersona, fetchSummary } from '../lib/api';
+import { useStudioStore } from '../lib/store';
 
 const mockAnalyzeResponse = {
   request_id: 'req',
@@ -89,6 +98,7 @@ const mockSummaryResponse = {
 describe('StudioPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useStudioStore.getState().reset();
     URL.createObjectURL = vi.fn(() => 'blob:fake') as typeof URL.createObjectURL;
     URL.revokeObjectURL = vi.fn();
     Element.prototype.scrollIntoView = vi.fn();

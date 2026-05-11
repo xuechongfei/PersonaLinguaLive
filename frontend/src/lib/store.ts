@@ -1,0 +1,87 @@
+import { create } from 'zustand';
+import type { ImageReadyInfo } from '../components/ImageCanvas';
+import type { UserLevel } from '../components/LevelSelector';
+import type { SummaryData } from '../components/SummaryCard';
+import type { VisionAnalyzeResponse, DetectedObject } from './api';
+import type { ChatClient } from './chat';
+import type { ConversationData } from './storage';
+
+export type StudioStatus =
+  | { kind: 'idle' }
+  | { kind: 'analyzing' }
+  | { kind: 'ready'; result: VisionAnalyzeResponse }
+  | { kind: 'error'; message: string }
+  | { kind: 'persona_loading'; object: DetectedObject }
+  | { kind: 'chatting'; personaName: string; sessionId: string }
+  | { kind: 'summary'; data: SummaryData; personaName: string };
+
+interface StudioState {
+  file: File | null;
+  imageSize: ImageReadyInfo | null;
+  status: StudioStatus;
+  analysisResult: VisionAnalyzeResponse | null;
+  selectedObject: DetectedObject | null;
+  chatClient: ChatClient | null;
+  sessionId: string;
+  conversation: ConversationData | null;
+  level: UserLevel;
+  analyserNode: AnalyserNode | undefined;
+  isSpeaking: boolean;
+
+  setFile: (f: File | null) => void;
+  setImageSize: (s: ImageReadyInfo | null) => void;
+  setStatus: (s: StudioStatus) => void;
+  setAnalysisResult: (r: VisionAnalyzeResponse | null) => void;
+  setSelectedObject: (o: DetectedObject | null) => void;
+  setChatClient: (c: ChatClient | null) => void;
+  setSessionId: (id: string) => void;
+  setConversation: (c: ConversationData | null) => void;
+  setLevel: (l: UserLevel) => void;
+  setAnalyserNode: (n: AnalyserNode | undefined) => void;
+  setIsSpeaking: (v: boolean) => void;
+  reset: () => void;
+}
+
+export const useStudioStore = create<StudioState>((set) => ({
+  file: null,
+  imageSize: null,
+  status: { kind: 'idle' },
+  analysisResult: null,
+  selectedObject: null,
+  chatClient: null,
+  sessionId: '',
+  conversation: null,
+  level: 'beginner',
+  analyserNode: undefined,
+  isSpeaking: false,
+
+  setFile: (f) => set({ file: f }),
+  setImageSize: (s) => set({ imageSize: s }),
+  setStatus: (s) => set({ status: s }),
+  setAnalysisResult: (r) => set({ analysisResult: r }),
+  setSelectedObject: (o) => set({ selectedObject: o }),
+  setChatClient: (c) => set({ chatClient: c }),
+  setSessionId: (id) => set({ sessionId: id }),
+  setConversation: (c) => set({ conversation: c }),
+  setLevel: (l) => set({ level: l }),
+  setAnalyserNode: (n) => set({ analyserNode: n }),
+  setIsSpeaking: (v) => set({ isSpeaking: v }),
+
+  reset: () => {
+    const state = useStudioStore.getState();
+    state.chatClient?.disconnect();
+    set({
+      file: null,
+      imageSize: null,
+      status: { kind: 'idle' },
+      analysisResult: null,
+      selectedObject: null,
+      chatClient: null,
+      sessionId: '',
+      conversation: null,
+      level: 'beginner',
+      analyserNode: undefined,
+      isSpeaking: false,
+    });
+  },
+}));

@@ -76,6 +76,15 @@ cd frontend && npm test
 - **首字音频低延迟**:`ChatOrchestrator` 在 `</speak>` 闭合的瞬间用 `asyncio.create_task` 启动 TTS,边继续流式 `learning / followup` 边等音频;新增 `speak_text` / `audio` 两个事件,音频先到、`result` 后到。
 - **口型同步**:`ChatPanel` 内部持有一个懒加载的 `AudioContext + AnalyserNode`,将播放的 `<audio>` 元素接入 Web Audio,`PersonaMouth` 用频谱平均值驱动嘴部张合。
 
+## Phase 5: Visual Polish & Experience Upgrade
+
+- **Zustand 状态管理**:将 StudioPage 中分散的 `useState`/`useRef` 迁移至 Zustand store (`frontend/src/lib/store.ts`),匹配设计文档原先规划的架构。
+- **物体口型叠加 (SpeakingOverlay)** :对话时 `PersonaMouth` 直接渲染在图片被点击物体上,通过 SVG `<foreignObject>` 定位到物体 bbox,和 HotspotOverlay 共享同一坐标空间。
+- **ChatPanel 口型联动**:`AnalyserNode` 和 `isSpeaking` 状态从 ChatPanel 提升至 Zustand store,Sidebar 头像与物体嘴巴同时随音频动。
+- **表情动画**:`PersonaMouth` 新增眨眼(2-5s 随机间隔,说话时加速)、眼球注视漂移(±3px lerp)、说话时眼睛放大。
+- **内置场景图库 (SceneGallery)** :免拍照即可上手,提供 Kitchen / Study Desk / Living Room / Cafe / Park / Bedroom 6 个预设场景,点击后走与上传相同的分析流水线。
+- **架构改进**:图片与聊天面板不再互斥——对话时图片、热区、口型叠加层、侧边栏同屏显示,支持中途点击其他物体切换角色。
+
 ## Docker
 
 ```bash

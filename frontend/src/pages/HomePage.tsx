@@ -18,6 +18,13 @@ export default function HomePage({ onStart }: Props) {
       >
         开始上传
       </button>
+      <button
+        type="button"
+        onClick={onStart}
+        className="mt-3 rounded-xl border border-indigo-300 px-6 py-3 text-base font-semibold text-indigo-600 hover:bg-indigo-50"
+      >
+        Browse Scenes
+      </button>
       <div className="mt-4 flex gap-4 text-sm">
         <a href="#/history" className="text-indigo-600 hover:underline">
           History
