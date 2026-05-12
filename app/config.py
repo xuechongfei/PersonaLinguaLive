@@ -29,10 +29,12 @@ class Settings(BaseSettings):
     frontend_dist_dir: str = "frontend/dist"
 
     # === AI 适配层 ===
-    ai_vision_provider: Literal["fake", "openai"] = "fake"
-    ai_llm_provider: Literal["fake", "openai"] = "fake"
-    ai_tts_provider: Literal["fake", "openai"] = "fake"
+    ai_vision_provider: Literal["fake", "openai", "qwen"] = "fake"
+    ai_llm_provider: Literal["fake", "openai", "deepseek"] = "fake"
+    ai_tts_provider: Literal["fake", "openai", "minimax"] = "fake"
     ai_stt_provider: Literal["fake", "openai"] = "fake"
+
+    # OpenAI
     openai_api_key: SecretStr | None = None
     openai_base_url: str = "https://api.openai.com/v1"
     openai_model_vision: str = "gpt-4o"
@@ -41,6 +43,26 @@ class Settings(BaseSettings):
     openai_model_stt: str = "whisper-1"
     openai_tts_voice: str = "alloy"
     openai_request_timeout_s: float = 30.0
+
+    # DeepSeek (LLM, OpenAI-compatible)
+    deepseek_api_key: SecretStr | None = None
+    deepseek_base_url: str = "https://api.deepseek.com/v1"
+    deepseek_model_llm: str = "deepseek-v4-flash"
+    deepseek_request_timeout_s: float = 30.0
+
+    # Qwen-VL (Vision, DashScope compatible-mode)
+    qwen_api_key: SecretStr | None = None
+    qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    qwen_model_vision: str = "qwen-vl-max-latest"
+    qwen_request_timeout_s: float = 30.0
+
+    # MiniMax (TTS)
+    minimax_api_key: SecretStr | None = None
+    minimax_group_id: str | None = None
+    minimax_base_url: str = "https://api.minimaxi.chat/v1"
+    minimax_model_tts: str = "speech-02-hd"
+    minimax_default_voice: str = "English_expressive_narrator"
+    minimax_request_timeout_s: float = 30.0
 
     # === 上传约束 ===
     upload_max_bytes: int = 10 * 1024 * 1024  # 10 MiB
@@ -55,16 +77,33 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_provider_credentials(self) -> Settings:
-        openai_providers = [
+        uses_openai = "openai" in (
             self.ai_vision_provider,
             self.ai_llm_provider,
             self.ai_tts_provider,
             self.ai_stt_provider,
-        ]
-        if any(p == "openai" for p in openai_providers) and self.openai_api_key is None:
+        )
+        if uses_openai and self.openai_api_key is None:
             raise ValueError(
                 "PLL_OPENAI_API_KEY is required when any AI provider is set to 'openai'"
             )
+        if self.ai_llm_provider == "deepseek" and self.deepseek_api_key is None:
+            raise ValueError(
+                "PLL_DEEPSEEK_API_KEY is required when LLM provider is 'deepseek'"
+            )
+        if self.ai_vision_provider == "qwen" and self.qwen_api_key is None:
+            raise ValueError(
+                "PLL_QWEN_API_KEY is required when vision provider is 'qwen'"
+            )
+        if self.ai_tts_provider == "minimax":
+            if self.minimax_api_key is None:
+                raise ValueError(
+                    "PLL_MINIMAX_API_KEY is required when TTS provider is 'minimax'"
+                )
+            if not self.minimax_group_id:
+                raise ValueError(
+                    "PLL_MINIMAX_GROUP_ID is required when TTS provider is 'minimax'"
+                )
         return self
 
 
