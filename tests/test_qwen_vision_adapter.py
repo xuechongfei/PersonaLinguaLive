@@ -138,8 +138,9 @@ async def test_invalid_json_in_response_raises_upstream_failure():
     respx.post(QWEN_URL).mock(return_value=httpx.Response(200, json=bad_envelope))
 
     adapter = _build_adapter()
-    with pytest.raises(UpstreamFailureError):
+    with pytest.raises(UpstreamFailureError) as exc_info:
         await adapter.analyze_image(safe_png_bytes())
+    assert exc_info.value.provider == "qwen"
 
 
 @pytest.mark.asyncio
