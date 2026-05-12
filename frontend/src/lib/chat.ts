@@ -24,6 +24,7 @@ export class ChatClient {
   private systemMessage: object = {};
   private userLevel: string = 'beginner';
   private learnerContext: LearnerContext | null = null;
+  private voiceId: string | null = null;
 
   get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
@@ -52,11 +53,13 @@ export class ChatClient {
     systemMessage: object,
     userLevel: string = 'beginner',
     learnerContext: LearnerContext | null = null,
+    voiceId: string | null = null,
   ): void {
     this.sessionId = sessionId;
     this.systemMessage = systemMessage;
     this.userLevel = userLevel;
     this.learnerContext = learnerContext;
+    this.voiceId = voiceId;
     this._connect();
   }
 
@@ -74,6 +77,7 @@ export class ChatClient {
         session_id: this.sessionId,
         system_message: this.systemMessage,
         user_level: this.userLevel,
+        ...(this.voiceId ? { voice_id: this.voiceId } : {}),
         ...(this.learnerContext ? { learner_context: this.learnerContext } : {}),
       }));
     };

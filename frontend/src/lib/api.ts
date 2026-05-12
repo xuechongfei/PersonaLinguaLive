@@ -125,6 +125,7 @@ export interface PersonaGenerateResponse {
   description: string;
   system_prompt: string;
   vocab_focus: string[];
+  voice_id: string;
 }
 
 export async function generatePersona(data: PersonaGenerateRequest): Promise<PersonaGenerateResponse> {

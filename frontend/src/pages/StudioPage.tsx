@@ -122,6 +122,7 @@ export default function StudioPage() {
         { role: 'system', content: persona.system_prompt },
         store.getState().level,
         learnerContext,
+        persona.voice_id,
       );
 
       store.getState().setSessionId(sessionId);

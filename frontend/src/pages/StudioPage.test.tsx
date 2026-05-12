@@ -85,6 +85,7 @@ const mockPersonaResponse = {
   description: 'A cheerful teacup',
   system_prompt: 'You are a cheerful teacup.',
   vocab_focus: ['teacup', 'tea'],
+  voice_id: 'English_sweet_female',
 };
 
 const mockSummaryResponse = {
