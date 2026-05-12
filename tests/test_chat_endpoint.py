@@ -54,6 +54,41 @@ def test_chat_websocket_init_required_first(client):
         assert resp["type"] == "error"
 
 
+def test_chat_websocket_init_frame_accepts_voice_id(monkeypatch):
+    """voice_id from the init frame is forwarded to the orchestrator."""
+    monkeypatch.setenv("PLL_AI_LLM_PROVIDER", "fake")
+    monkeypatch.setenv("PLL_AI_TTS_PROVIDER", "fake")
+    monkeypatch.setenv("PLL_RATE_LIMIT_CHAT_MESSAGES_PER_MIN", "100")
+
+    captured = {}
+
+    class _SpyOrchestrator:
+        def __init__(self, *a, **kw): pass
+        async def chat_stream(self, session_id, user_message, system_message,
+                              learner_context_message=None, voice_id=None):
+            captured["voice_id"] = voice_id
+            yield {"type": "result", "segments": {"speak": "hi", "learning": "", "followup": ""}, "audio_base64": ""}
+
+    monkeypatch.setattr("app.api.chat.ChatOrchestrator", _SpyOrchestrator)
+
+    from app.main import create_app
+    from fastapi.testclient import TestClient
+
+    app = create_app()
+    client = TestClient(app)
+    with client.websocket_connect("/api/chat") as ws:
+        ws.send_json({
+            "type": "init",
+            "session_id": "s1",
+            "system_message": {"role": "system", "content": "x"},
+            "voice_id": "English_sweet_female",
+        })
+        ws.send_json({"type": "user_message", "content": "Hello"})
+        ws.receive_json()
+
+    assert captured["voice_id"] == "English_sweet_female"
+
+
 def test_chat_websocket_rate_limited(monkeypatch):
     """Basic flow works even with low rate limit setting."""
     monkeypatch.setenv("PLL_AI_LLM_PROVIDER", "fake")

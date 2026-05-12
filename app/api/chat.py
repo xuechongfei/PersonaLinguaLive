@@ -104,6 +104,7 @@ async def chat_websocket(websocket: WebSocket) -> None:
         system_message: dict = init_data["system_message"]
         user_level: str = init_data.get("user_level", "beginner")
         learner_context_raw = init_data.get("learner_context") or {}
+        voice_id: str | None = init_data.get("voice_id")
         learner_context_message = build_learner_context_message(
             level=learner_context_raw.get("level") or user_level,
             recent_vocab=learner_context_raw.get("recent_vocab"),
@@ -147,6 +148,7 @@ async def chat_websocket(websocket: WebSocket) -> None:
                 user_message,
                 system_message,
                 learner_context_message=learner_context_message,
+                voice_id=voice_id,
             ):
                 await websocket.send_json(event)
 
