@@ -74,6 +74,7 @@ class UpstreamFailureError(PLLError):
             http_status=502,
             details={"provider": provider},
         )
+        self.provider = provider
 
 
 class UpstreamTimeoutError(PLLError):
@@ -84,6 +85,7 @@ class UpstreamTimeoutError(PLLError):
             http_status=504,
             details={"provider": provider},
         )
+        self.provider = provider
 
 
 def register_exception_handlers(app: FastAPI) -> None:
