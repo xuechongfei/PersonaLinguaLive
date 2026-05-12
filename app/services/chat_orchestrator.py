@@ -31,11 +31,15 @@ class ChatOrchestrator:
         user_message: str,
         system_message: dict,  # The persona system message from build_chat_system_message()
         learner_context_message: dict | None = None,
+        voice_id: str | None = None,
     ) -> AsyncGenerator[dict, None]:
         """Run a full chat turn and yield streaming events.
 
         ``learner_context_message`` (optional) is prepended to the message list
         so the LLM can recycle vocab and stay calibrated to the learner.
+
+        ``voice_id`` (optional) is the MiniMax voice ID to use for TTS. If
+        omitted the adapter's default voice (usually "alloy") is used.
 
         Yields dict events of three types:
 
@@ -59,6 +63,7 @@ class ChatOrchestrator:
         try:
             # 1. Get existing context
             context = self._context.get_context(session_id)
+            effective_voice = voice_id or "alloy"
 
             # 2. Build full messages list: [learner_ctx?] + system + history + user
             preface: list[dict] = []
@@ -85,7 +90,7 @@ class ChatOrchestrator:
                     speak_text = self._extract_tag(full_response, "speak")
                     yield {"type": "speak_text", "content": speak_text}
                     tts_task = asyncio.create_task(
-                        self._tts.synthesize(speak_text, voice="alloy")
+                        self._tts.synthesize(speak_text, voice=effective_voice)
                     )
                     speak_text_emitted = True
 
@@ -101,7 +106,7 @@ class ChatOrchestrator:
             # 7. If we never saw </speak> mid-stream (e.g. response had no tag),
             #    synthesize now with whatever speak text we parsed.
             if tts_task is None:
-                audio_bytes = await self._tts.synthesize(segments.speak, voice="alloy")
+                audio_bytes = await self._tts.synthesize(segments.speak, voice=effective_voice)
             else:
                 audio_bytes = await tts_task
             audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")

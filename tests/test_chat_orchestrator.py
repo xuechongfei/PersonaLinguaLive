@@ -347,3 +347,65 @@ async def test_chat_stream_speak_text_carries_speak_segment() -> None:
 
     assert speak_event is not None
     assert speak_event["content"] == "Hello! How are you today?"
+
+
+# ---------------------------------------------------------------------------
+# voice_id threading
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_passes_voice_id_to_tts():
+    from app.services.chat_orchestrator import ChatOrchestrator
+    from app.services.context_manager import ContextManager
+
+    captured_voice = {}
+
+    class FakeLLM:
+        async def generate_stream(self, messages, *, temperature=0.7):
+            yield "<speak>Hi</speak><learning>l</learning><followup>f</followup>"
+        async def generate(self, messages, *, temperature=0.7):
+            return ""
+
+    class FakeTTS:
+        async def synthesize(self, text, *, voice="alloy"):
+            captured_voice["voice"] = voice
+            return b"audio"
+
+    orch = ChatOrchestrator(llm=FakeLLM(), tts=FakeTTS(), context=ContextManager(llm=FakeLLM()))
+    async for _ in orch.chat_stream(
+        "sess1", "Hello",
+        system_message={"role": "system", "content": "Be a cake"},
+        voice_id="English_sweet_female",
+    ):
+        pass
+
+    assert captured_voice["voice"] == "English_sweet_female"
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_defaults_voice_id_when_omitted():
+    from app.services.chat_orchestrator import ChatOrchestrator
+    from app.services.context_manager import ContextManager
+
+    captured_voice = {}
+
+    class FakeLLM:
+        async def generate_stream(self, messages, *, temperature=0.7):
+            yield "<speak>Hi</speak><learning>l</learning><followup>f</followup>"
+        async def generate(self, messages, *, temperature=0.7):
+            return ""
+
+    class FakeTTS:
+        async def synthesize(self, text, *, voice="alloy"):
+            captured_voice["voice"] = voice
+            return b"audio"
+
+    orch = ChatOrchestrator(llm=FakeLLM(), tts=FakeTTS(), context=ContextManager(llm=FakeLLM()))
+    async for _ in orch.chat_stream(
+        "sess2", "Hello",
+        system_message={"role": "system", "content": "x"},
+    ):
+        pass
+
+    assert captured_voice["voice"] == "alloy"
