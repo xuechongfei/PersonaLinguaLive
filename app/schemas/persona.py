@@ -17,3 +17,4 @@ class PersonaGenerateResponse(BaseModel):
     description: str
     system_prompt: str
     vocab_focus: list[str] = Field(default_factory=list)
+    voice_id: str = Field(default="English_expressive_narrator")

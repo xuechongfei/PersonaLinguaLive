@@ -8,6 +8,7 @@ from uuid import uuid4
 from app.adapters.llm.base import LLMAdapter
 from app.prompts.persona_gen import build_persona_messages
 from app.schemas.persona import PersonaGenerateRequest, PersonaGenerateResponse
+from app.services.voice_picker import pick_voice
 
 
 class PersonaService:
@@ -64,6 +65,7 @@ class PersonaService:
                 ),
                 system_prompt=data["system_prompt"],
                 vocab_focus=data.get("vocab_focus", []),
+                voice_id=pick_voice(data.get("voice_traits")),
             )
         except KeyError as exc:
             raise ValueError(

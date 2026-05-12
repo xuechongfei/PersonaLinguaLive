@@ -165,3 +165,53 @@ async def test_field_mapping_personality_description_to_description() -> None:
     response = await svc.generate_persona(_make_request())
 
     assert response.description == "A test personality description."
+
+
+# ---------------------------------------------------------------------------
+# voice_id integration
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_persona_response_includes_voice_id_from_picker():
+    from app.services.persona_service import PersonaService
+    from app.schemas.persona import PersonaGenerateRequest
+    import json
+
+    class FakeLLM:
+        async def generate(self, messages, *, temperature=0.8):
+            return json.dumps({
+                "persona_name": "Sweet Cupcake",
+                "description": "A cheerful baked good",
+                "system_prompt": "Be sweet",
+                "vocab_focus": ["sweet"],
+                "voice_traits": {"gender": "female", "age": "adult", "tone": "sweet"},
+            })
+
+    svc = PersonaService(llm=FakeLLM())
+    result = await svc.generate_persona(
+        PersonaGenerateRequest(label="cupcake", scene_summary="kitchen", user_level="beginner")
+    )
+    assert result.voice_id == "English_sweet_female"
+
+
+@pytest.mark.asyncio
+async def test_persona_response_voice_id_fallback_when_traits_missing():
+    from app.services.persona_service import PersonaService
+    from app.schemas.persona import PersonaGenerateRequest
+    import json
+
+    class FakeLLM:
+        async def generate(self, messages, *, temperature=0.8):
+            return json.dumps({
+                "persona_name": "Mystery",
+                "description": "Unknown",
+                "system_prompt": "Be mysterious",
+                "vocab_focus": [],
+            })
+
+    svc = PersonaService(llm=FakeLLM())
+    result = await svc.generate_persona(
+        PersonaGenerateRequest(label="thing", scene_summary="", user_level="beginner")
+    )
+    assert result.voice_id == "English_expressive_narrator"
