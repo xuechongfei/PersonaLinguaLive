@@ -26,3 +26,17 @@ def test_factory_returns_openai_adapter_when_configured(monkeypatch):
     # 内部字段被正确传入
     assert adapter._api_key == "sk-test"
     assert adapter._model == "gpt-4o"
+
+
+def test_qwen_provider(monkeypatch):
+    monkeypatch.setenv("PLL_AI_VISION_PROVIDER", "qwen")
+    monkeypatch.setenv("PLL_QWEN_API_KEY", "sk-qwen")
+    from app.adapters.vision.qwen_vision import QwenVisionAdapter
+    from app.adapters.factory import build_vision_adapter
+    from app.config import Settings
+
+    settings = Settings()
+    adapter = build_vision_adapter(settings)
+    assert isinstance(adapter, QwenVisionAdapter)
+    assert adapter._model == "qwen-vl-max-latest"
+    assert adapter._base_url == "https://dashscope.aliyuncs.com/compatible-mode/v1"

@@ -14,6 +14,7 @@ from app.adapters.tts.openai_tts import OpenAITTSAdapter
 from app.adapters.vision.base import VisionAdapter
 from app.adapters.vision.fake import FakeVisionAdapter
 from app.adapters.vision.openai_vision import OpenAIVisionAdapter
+from app.adapters.vision.qwen_vision import QwenVisionAdapter
 from app.config import Settings
 
 
@@ -27,6 +28,15 @@ def build_vision_adapter(settings: Settings) -> VisionAdapter:
             base_url=settings.openai_base_url,
             model=settings.openai_model_vision,
             timeout_s=settings.openai_request_timeout_s,
+        )
+    if settings.ai_vision_provider == "qwen":
+        if settings.qwen_api_key is None:
+            raise RuntimeError("qwen provider selected but PLL_QWEN_API_KEY is missing")
+        return QwenVisionAdapter(
+            api_key=settings.qwen_api_key.get_secret_value(),
+            base_url=settings.qwen_base_url,
+            model=settings.qwen_model_vision,
+            timeout_s=settings.qwen_request_timeout_s,
         )
     raise RuntimeError(f"unknown vision provider: {settings.ai_vision_provider}")
 
