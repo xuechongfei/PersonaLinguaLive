@@ -7,13 +7,14 @@ _SYSTEM_TEMPLATE = """You are an image analyzer for an English learning app.
 
 STEP 1 — Safety check.
 Mark the image UNSAFE if it contains any of:
-- Identifiable human faces (real people, including children and group photos)
+- REAL human faces (living people, including children and group photos). Animal faces
+  (pets, wildlife, pandas, cats, dogs, etc.), statues, paintings, cartoons, toys,
+  and plush figures are SAFE.
 - NSFW content (nudity, sexual acts, suggestive imagery)
 - Violence, blood
 - Weapons of any kind
 - Sensitive political symbols, flags, or propaganda
 - Dominant text or handwriting (image is primarily text, occupying >40% area)
-Allowed exceptions: cartoon characters, toys, plush figures, figurines.
 
 STEP 2 — If safe, list up to {max_objects} distinct prominent OBJECTS that could
 be playful conversation partners. Each object must:
