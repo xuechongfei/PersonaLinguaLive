@@ -58,7 +58,6 @@ class Settings(BaseSettings):
 
     # MiniMax (TTS)
     minimax_api_key: SecretStr | None = None
-    minimax_group_id: str | None = None
     minimax_base_url: str = "https://api.minimaxi.chat/v1"
     minimax_model_tts: str = "speech-02-hd"
     minimax_default_voice: str = "English_expressive_narrator"
@@ -95,15 +94,10 @@ class Settings(BaseSettings):
             raise ValueError(
                 "PLL_QWEN_API_KEY is required when vision provider is 'qwen'"
             )
-        if self.ai_tts_provider == "minimax":
-            if self.minimax_api_key is None:
-                raise ValueError(
-                    "PLL_MINIMAX_API_KEY is required when TTS provider is 'minimax'"
-                )
-            if not self.minimax_group_id:
-                raise ValueError(
-                    "PLL_MINIMAX_GROUP_ID is required when TTS provider is 'minimax'"
-                )
+        if self.ai_tts_provider == "minimax" and self.minimax_api_key is None:
+            raise ValueError(
+                "PLL_MINIMAX_API_KEY is required when TTS provider is 'minimax'"
+            )
         return self
 
 

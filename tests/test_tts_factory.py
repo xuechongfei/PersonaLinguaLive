@@ -25,11 +25,9 @@ def test_openai_provider(monkeypatch):
 def test_minimax_provider(monkeypatch):
     monkeypatch.setenv("PLL_AI_TTS_PROVIDER", "minimax")
     monkeypatch.setenv("PLL_MINIMAX_API_KEY", "sk-mm")
-    monkeypatch.setenv("PLL_MINIMAX_GROUP_ID", "grp123")
 
     settings = Settings()
     adapter = build_tts_adapter(settings)
     assert isinstance(adapter, MiniMaxTTSAdapter)
     assert adapter._model == "speech-02-hd"
-    assert adapter._group_id == "grp123"
     assert adapter._default_voice == "English_expressive_narrator"

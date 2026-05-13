@@ -17,7 +17,6 @@ def _build_adapter():
 
     return MiniMaxTTSAdapter(
         api_key="sk-mm",
-        group_id="grp123",
         base_url="https://api.minimaxi.chat/v1",
         model="speech-02-hd",
         default_voice="English_expressive_narrator",
@@ -49,11 +48,10 @@ async def test_synthesize_decodes_hex_audio():
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_request_uses_group_id_query_and_bearer_auth():
+async def test_request_uses_bearer_auth():
     captured: dict = {}
 
     def _capture(request: httpx.Request) -> httpx.Response:
-        captured["url"] = str(request.url)
         captured["headers"] = dict(request.headers)
         captured["body"] = json.loads(request.content.decode())
         return httpx.Response(200, json=_success_envelope(b"abc".hex()))
@@ -63,7 +61,6 @@ async def test_request_uses_group_id_query_and_bearer_auth():
     adapter = _build_adapter()
     await adapter.synthesize("Hello", voice="English_friendly_female")
 
-    assert "GroupId=grp123" in captured["url"]
     assert captured["headers"].get("authorization") == "Bearer sk-mm"
     assert captured["body"]["model"] == "speech-02-hd"
     assert captured["body"]["text"] == "Hello"

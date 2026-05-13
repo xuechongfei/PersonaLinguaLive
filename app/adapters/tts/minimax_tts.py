@@ -1,7 +1,6 @@
 """MiniMax T2A v2 adapter (speech-02-hd).
 
 Differences from OpenAI TTS:
-  - GroupId is required as a URL query parameter (not in body or headers).
   - Response is a JSON envelope; audio bytes come back hex-encoded under data.audio.
   - Application-level errors are signaled via base_resp.status_code (0 = success).
 """
@@ -25,14 +24,12 @@ class MiniMaxTTSAdapter:
         self,
         *,
         api_key: str,
-        group_id: str,
         base_url: str,
         model: str,
         default_voice: str,
         timeout_s: float,
     ) -> None:
         self._api_key = api_key
-        self._group_id = group_id
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._default_voice = default_voice
@@ -47,7 +44,6 @@ class MiniMaxTTSAdapter:
         voice_id = voice if voice not in _LEGACY_VOICE_ALIASES else self._default_voice
 
         url = f"{self._base_url}/t2a_v2"
-        params = {"GroupId": self._group_id}
         body = {
             "model": self._model,
             "text": text,
@@ -72,7 +68,7 @@ class MiniMaxTTSAdapter:
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout_s) as client:
-                resp = await client.post(url, params=params, json=body, headers=headers)
+                resp = await client.post(url, json=body, headers=headers)
         except httpx.TimeoutException as exc:
             log.warning("minimax.tts.timeout", error=str(exc))
             raise UpstreamTimeoutError(provider=_PROVIDER) from exc
