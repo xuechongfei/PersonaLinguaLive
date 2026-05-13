@@ -71,8 +71,9 @@ def test_chat_websocket_init_frame_accepts_voice_id(monkeypatch):
 
     monkeypatch.setattr("app.api.chat.ChatOrchestrator", _SpyOrchestrator)
 
-    from app.main import create_app
     from fastapi.testclient import TestClient
+
+    from app.main import create_app
 
     app = create_app()
     client = TestClient(app)

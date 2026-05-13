@@ -31,8 +31,8 @@ def test_factory_returns_openai_adapter_when_configured(monkeypatch):
 def test_qwen_provider(monkeypatch):
     monkeypatch.setenv("PLL_AI_VISION_PROVIDER", "qwen")
     monkeypatch.setenv("PLL_QWEN_API_KEY", "sk-qwen")
-    from app.adapters.vision.qwen_vision import QwenVisionAdapter
     from app.adapters.factory import build_vision_adapter
+    from app.adapters.vision.qwen_vision import QwenVisionAdapter
     from app.config import Settings
 
     settings = Settings()

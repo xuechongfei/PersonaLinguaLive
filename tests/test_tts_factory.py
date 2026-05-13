@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from app.adapters.factory import build_tts_adapter
 from app.adapters.tts.fake import FakeTTSAdapter
-from app.adapters.tts.openai_tts import OpenAITTSAdapter
 from app.adapters.tts.minimax_tts import MiniMaxTTSAdapter
+from app.adapters.tts.openai_tts import OpenAITTSAdapter
 from app.config import Settings
 
 

@@ -174,9 +174,10 @@ async def test_field_mapping_personality_description_to_description() -> None:
 
 @pytest.mark.asyncio
 async def test_persona_response_includes_voice_id_from_picker():
-    from app.services.persona_service import PersonaService
-    from app.schemas.persona import PersonaGenerateRequest
     import json
+
+    from app.schemas.persona import PersonaGenerateRequest
+    from app.services.persona_service import PersonaService
 
     class FakeLLM:
         async def generate(self, messages, *, temperature=0.8):
@@ -197,9 +198,10 @@ async def test_persona_response_includes_voice_id_from_picker():
 
 @pytest.mark.asyncio
 async def test_persona_response_voice_id_fallback_when_traits_missing():
-    from app.services.persona_service import PersonaService
-    from app.schemas.persona import PersonaGenerateRequest
     import json
+
+    from app.schemas.persona import PersonaGenerateRequest
+    from app.services.persona_service import PersonaService
 
     class FakeLLM:
         async def generate(self, messages, *, temperature=0.8):

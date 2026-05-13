@@ -36,7 +36,6 @@ def _success_envelope(audio_hex: str) -> dict:
 @pytest.mark.asyncio
 @respx.mock
 async def test_synthesize_decodes_hex_audio():
-    from app.adapters.tts.minimax_tts import MiniMaxTTSAdapter
 
     audio_bytes = b"\xff\xfb\x50\xc4fake-mp3"
     respx.post(MM_URL).mock(

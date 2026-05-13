@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from app.adapters.llm.base import LLMAdapter
-from app.adapters.llm.fake import FakeLLMAdapter
 from app.adapters.llm.deepseek_llm import DeepSeekLLMAdapter
+from app.adapters.llm.fake import FakeLLMAdapter
 from app.adapters.llm.openai_llm import OpenAILLMAdapter
 from app.adapters.stt.base import STTAdapter
 from app.adapters.stt.fake import FakeSTTAdapter

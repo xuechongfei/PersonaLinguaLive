@@ -4,9 +4,9 @@ from __future__ import annotations
 import pytest
 
 from app.adapters.factory import build_llm_adapter
+from app.adapters.llm.deepseek_llm import DeepSeekLLMAdapter
 from app.adapters.llm.fake import FakeLLMAdapter
 from app.adapters.llm.openai_llm import OpenAILLMAdapter
-from app.adapters.llm.deepseek_llm import DeepSeekLLMAdapter
 from app.config import Settings
 
 
