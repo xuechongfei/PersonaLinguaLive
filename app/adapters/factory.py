@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from app.adapters.llm.base import LLMAdapter
 from app.adapters.llm.fake import FakeLLMAdapter
+from app.adapters.llm.deepseek_llm import DeepSeekLLMAdapter
 from app.adapters.llm.openai_llm import OpenAILLMAdapter
 from app.adapters.stt.base import STTAdapter
 from app.adapters.stt.fake import FakeSTTAdapter
@@ -40,6 +41,15 @@ def build_llm_adapter(settings: Settings) -> LLMAdapter:
             base_url=settings.openai_base_url,
             model=settings.openai_model_llm,
             timeout_s=settings.openai_request_timeout_s,
+        )
+    if settings.ai_llm_provider == "deepseek":
+        if settings.deepseek_api_key is None:
+            raise RuntimeError("deepseek provider selected but PLL_DEEPSEEK_API_KEY is missing")
+        return DeepSeekLLMAdapter(
+            api_key=settings.deepseek_api_key.get_secret_value(),
+            base_url=settings.deepseek_base_url,
+            model=settings.deepseek_model_llm,
+            timeout_s=settings.deepseek_request_timeout_s,
         )
     raise RuntimeError(f"unknown LLM provider: {settings.ai_llm_provider}")
 
