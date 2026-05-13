@@ -64,7 +64,7 @@ cd frontend && npm test
 - **学习卡片**:每次回复中的 `<learning>` 和 `<followup>` 以可折叠卡片展示。
 - **对话总结**:结束对话后生成总结卡片,包含生词、语法点、流利度评分(1-10)。
 - **本地持久化**:对话记录、用户偏好通过 IndexedDB 存储在浏览器端。
-- **Provider 切换**:LLM / TTS / STT 均支持 `fake` ↔ `openai` 切换,默认为 `fake`。
+- **Provider 切换**:LLM / TTS / STT 均支持 `fake` / `openai` / 国产厂商切换,默认为 `fake`。
 
 ## Phase 4: Adaptive Coach
 
@@ -84,6 +84,15 @@ cd frontend && npm test
 - **表情动画**:`PersonaMouth` 新增眨眼(2-5s 随机间隔,说话时加速)、眼球注视漂移(±3px lerp)、说话时眼睛放大。
 - **内置场景图库 (SceneGallery)** :免拍照即可上手,提供 Kitchen / Study Desk / Living Room / Cafe / Park / Bedroom 6 个预设场景,点击后走与上传相同的分析流水线。
 - **架构改进**:图片与聊天面板不再互斥——对话时图片、热区、口型叠加层、侧边栏同屏显示,支持中途点击其他物体切换角色。
+
+## Provider / Adapter Matrix
+
+| Capability | Adapters available |
+|---|---|
+| Vision | `fake`, `openai` (gpt-4o), `qwen` (qwen-vl-max-latest, DashScope) |
+| LLM    | `fake`, `openai` (gpt-4o-mini), `deepseek` (deepseek-v4-flash) |
+| TTS    | `fake`, `openai` (tts-1-hd), `minimax` (speech-02-hd, 300+ voices) |
+| STT    | `fake`, `openai` (whisper-1); frontend uses Web Speech API as primary |
 
 ## Docker
 
