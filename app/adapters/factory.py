@@ -10,6 +10,7 @@ from app.adapters.stt.fake import FakeSTTAdapter
 from app.adapters.stt.openai_stt import OpenAISTTAdapter
 from app.adapters.tts.base import TTSAdapter
 from app.adapters.tts.fake import FakeTTSAdapter
+from app.adapters.tts.minimax_tts import MiniMaxTTSAdapter
 from app.adapters.tts.openai_tts import OpenAITTSAdapter
 from app.adapters.vision.base import VisionAdapter
 from app.adapters.vision.fake import FakeVisionAdapter
@@ -74,6 +75,19 @@ def build_tts_adapter(settings: Settings) -> TTSAdapter:
             base_url=settings.openai_base_url,
             model=settings.openai_model_tts,
             timeout_s=settings.openai_request_timeout_s,
+        )
+    if settings.ai_tts_provider == "minimax":
+        if settings.minimax_api_key is None or not settings.minimax_group_id:
+            raise RuntimeError(
+                "minimax provider selected but PLL_MINIMAX_API_KEY / PLL_MINIMAX_GROUP_ID is missing"
+            )
+        return MiniMaxTTSAdapter(
+            api_key=settings.minimax_api_key.get_secret_value(),
+            group_id=settings.minimax_group_id,
+            base_url=settings.minimax_base_url,
+            model=settings.minimax_model_tts,
+            default_voice=settings.minimax_default_voice,
+            timeout_s=settings.minimax_request_timeout_s,
         )
     raise RuntimeError(f"unknown TTS provider: {settings.ai_tts_provider}")
 
