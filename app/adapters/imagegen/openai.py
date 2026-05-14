@@ -30,7 +30,35 @@ class OpenAIImageGenAdapter(ImageGenAdapter):
         return await self._post_generations(body)
 
     async def image_to_image(self, image_bytes, prompt, *, size="1024x1024", strength=0.7):
-        raise NotImplementedError("Task 6")
+        url = f"{self._base_url}/images/edits"
+        headers = {"Authorization": f"Bearer {self._api_key}"}
+        files = {"image": ("input.png", image_bytes, "image/png")}
+        data = {
+            "model": self._model,
+            "prompt": prompt,
+            "size": size,
+            "n": "1",
+            "response_format": "b64_json",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout_s) as client:
+                resp = await client.post(url, headers=headers, files=files, data=data)
+        except httpx.TimeoutException as exc:
+            log.warning("openai.imagegen.edit.timeout", error=str(exc))
+            raise UpstreamTimeoutError(provider="openai") from exc
+        except httpx.HTTPError as exc:
+            log.warning("openai.imagegen.edit.http_error", error=str(exc))
+            raise UpstreamFailureError(provider="openai", message=str(exc)) from exc
+        if resp.status_code >= 400:
+            log.warning("openai.imagegen.edit.http_status", status=resp.status_code, body=resp.text[:500])
+            raise UpstreamFailureError(provider="openai", message=f"openai returned {resp.status_code}")
+        try:
+            envelope = resp.json()
+            decoded = base64.b64decode(envelope["data"][0]["b64_json"])
+        except (KeyError, IndexError, ValueError) as exc:
+            log.warning("openai.imagegen.edit.parse_error", error=str(exc))
+            raise UpstreamFailureError(provider="openai", message="invalid response") from exc
+        return ImageGenResult(decoded, "image/png")
 
     async def _post_generations(self, body: dict) -> ImageGenResult:
         url = f"{self._base_url}/images/generations"

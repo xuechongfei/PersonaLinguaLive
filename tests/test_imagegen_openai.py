@@ -74,3 +74,37 @@ async def test_timeout_raises():
     )
     with pytest.raises(UpstreamTimeoutError):
         await adapter.text_to_image("a cat")
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_image_to_image_uses_edits_endpoint():
+    from app.adapters.imagegen.openai import OpenAIImageGenAdapter
+    payload = b"\x89PNG\r\n\x1a\nEDIT"
+    b64 = base64.b64encode(payload).decode()
+    route = respx.post("https://api.openai.com/v1/images/edits").mock(
+        return_value=httpx.Response(200, json=_ok(b64))
+    )
+    adapter = OpenAIImageGenAdapter(
+        api_key="sk-test", base_url="https://api.openai.com/v1",
+        model="gpt-image-1", timeout_s=10.0,
+    )
+    src = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+    result = await adapter.image_to_image(src, "make it cartoon")
+    assert result.image_bytes == payload
+    assert route.called
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_image_to_image_500_raises():
+    from app.adapters.imagegen.openai import OpenAIImageGenAdapter
+    respx.post("https://api.openai.com/v1/images/edits").mock(
+        return_value=httpx.Response(500, text="boom")
+    )
+    adapter = OpenAIImageGenAdapter(
+        api_key="sk-test", base_url="https://api.openai.com/v1",
+        model="gpt-image-1", timeout_s=10.0,
+    )
+    with pytest.raises(UpstreamFailureError):
+        await adapter.image_to_image(b"\x89PNG", "x")
