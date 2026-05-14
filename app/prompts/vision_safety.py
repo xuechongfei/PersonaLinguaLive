@@ -1,4 +1,12 @@
-"""Prompt template for combined safety check + object detection."""
+"""Prompt template for safety check + entity detection (v3 Living Scene).
+
+Differences from v2:
+- Real faces are NO longer flagged as unsafe. They become entities with
+  kind="character". Safety is limited to NSFW/violence/weapons/symbols/text.
+- Output shape changed: entities[] replaces objects[], each entity has
+  kind ("object" | "character") and salience (0-1) for downstream filtering.
+- Added raw_scene (free-text scene description).
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -7,48 +15,57 @@ _SYSTEM_TEMPLATE = """You are an image analyzer for an English learning app.
 
 STEP 1 — Safety check.
 Mark the image UNSAFE if it contains any of:
-- REAL human faces (living people, including children and group photos). Animal faces
-  (pets, wildlife, pandas, cats, dogs, etc.), statues, paintings, cartoons, toys,
-  and plush figures are SAFE.
 - NSFW content (nudity, sexual acts, suggestive imagery)
-- Violence, blood
+- Violence, blood, gore
 - Weapons of any kind
 - Sensitive political symbols, flags, or propaganda
-- Dominant text or handwriting (image is primarily text, occupying >40% area)
+- Dominant text or handwriting occupying >40% of image area
 
-STEP 2 — If safe, list up to {max_objects} distinct prominent OBJECTS that could
-be playful conversation partners. Each object must:
-- Be clearly visible and >= 1.5% of total image area
-- Have an English label (lowercase, singular noun)
+Real human faces, crowds, children — ALL SAFE. Do NOT flag them.
+
+STEP 2 — Scene understanding.
+Describe the scene in 1-2 sentences (raw_scene). Focus on: what kind of place
+it is (kitchen, café, desk, park), what is happening, the lighting/mood.
+
+STEP 3 — Entity detection.
+List every distinct OBJECT and PERSON that could be a conversation partner.
+Each entity must:
+- Be clearly visible (>= 1.5% of total image area)
 - Have a normalized bounding box [x, y, w, h] in [0, 1]
-- Have a 1-line persona seed (short phrase describing potential character)
+- Have kind: "object" for things, "character" for people
+- Have salience (0-1): how important this entity is to the scene
+- Have label (lowercase singular English noun for objects, simple role for people)
+- Have a 1-line persona_seed (short phrase describing potential character)
 
 Output STRICT JSON, exactly this shape, no markdown fence, no commentary:
 {{
   "is_safe": <bool>,
   "reject_reasons": [<reason_code>, ...],
-  "scene_summary": "<1-2 sentence English description>",
-  "objects": [
+  "raw_scene": "<1-2 sentence English description>",
+  "entities": [
     {{
-      "label": "<noun>",
+      "id": "e1",
+      "kind": "object",
+      "label": "coffee mug",
       "bbox": [<x>, <y>, <w>, <h>],
-      "persona_seed": "<short phrase>"
+      "salience": 0.9,
+      "persona_seed": "morning brew enthusiast"
     }}
   ]
 }}
 
 Valid reject_reasons codes:
-"face_detected" | "nsfw" | "violence" | "weapons" | "sensitive_symbols" | "dominant_text" | "unclear_image"
+"nsfw" | "violence" | "weapons" | "sensitive_symbols" | "dominant_text"
 """
 
 
 def build_vision_safety_messages(
     *,
     image_data_url: str,
-    max_objects: int = 12,
+    max_entities: int = 12,
 ) -> list[dict[str, Any]]:
-    """Return OpenAI chat-completions style messages for one-shot vision analysis."""
-    system_text = _SYSTEM_TEMPLATE.format(max_objects=max_objects)
+    """Return messages for one-shot vision analysis (v3 Living Scene)."""
+    system_text = _SYSTEM_TEMPLATE.format(max_entities=max_entities)
     return [
         {"role": "system", "content": system_text},
         {
