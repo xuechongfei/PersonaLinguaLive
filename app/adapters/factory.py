@@ -1,6 +1,9 @@
 """Provider factories: pick adapter based on settings."""
 from __future__ import annotations
 
+from app.adapters.imagegen.base import ImageGenAdapter
+from app.adapters.imagegen.fake import FakeImageGenAdapter
+from app.adapters.imagegen.openai import OpenAIImageGenAdapter
 from app.adapters.llm.base import LLMAdapter
 from app.adapters.llm.deepseek_llm import DeepSeekLLMAdapter
 from app.adapters.llm.fake import FakeLLMAdapter
@@ -103,6 +106,20 @@ def build_stt_adapter(settings: Settings) -> STTAdapter:
             timeout_s=settings.openai_request_timeout_s,
         )
     raise RuntimeError(f"unknown STT provider: {settings.ai_stt_provider}")
+
+
+def build_imagegen_adapter(settings: Settings) -> ImageGenAdapter:
+    if settings.ai_imagegen_provider == "fake":
+        return FakeImageGenAdapter()
+    if settings.ai_imagegen_provider == "openai":
+        _require_api_key(settings)
+        return OpenAIImageGenAdapter(
+            api_key=settings.openai_api_key.get_secret_value(),
+            base_url=settings.openai_base_url,
+            model=settings.openai_model_imagegen,
+            timeout_s=settings.openai_request_timeout_s,
+        )
+    raise RuntimeError(f"unknown imagegen provider: {settings.ai_imagegen_provider}")
 
 
 def _require_api_key(settings: Settings) -> None:
