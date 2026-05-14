@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     ai_llm_provider: Literal["fake", "openai", "deepseek"] = "fake"
     ai_tts_provider: Literal["fake", "openai", "minimax"] = "fake"
     ai_stt_provider: Literal["fake", "openai"] = "fake"
+    ai_imagegen_provider: Literal["fake", "openai"] = "fake"
 
     # OpenAI
     openai_api_key: SecretStr | None = None
@@ -41,6 +42,7 @@ class Settings(BaseSettings):
     openai_model_llm: str = "gpt-4o-mini"
     openai_model_tts: str = "tts-1-hd"
     openai_model_stt: str = "whisper-1"
+    openai_model_imagegen: str = "gpt-image-1"
     openai_tts_voice: str = "alloy"
     openai_request_timeout_s: float = 30.0
 
@@ -81,6 +83,7 @@ class Settings(BaseSettings):
             self.ai_llm_provider,
             self.ai_tts_provider,
             self.ai_stt_provider,
+            self.ai_imagegen_provider,
         )
         if uses_openai and self.openai_api_key is None:
             raise ValueError(
