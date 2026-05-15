@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     ai_llm_provider: Literal["fake", "openai", "deepseek"] = "fake"
     ai_tts_provider: Literal["fake", "openai", "minimax"] = "fake"
     ai_stt_provider: Literal["fake", "openai"] = "fake"
-    ai_imagegen_provider: Literal["fake", "openai"] = "fake"
+    ai_imagegen_provider: Literal["fake", "openai", "wanx"] = "fake"
 
     # OpenAI
     openai_api_key: SecretStr | None = None
@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     qwen_model_vision: str = "qwen3-vl-plus"
     qwen_request_timeout_s: float = 30.0
+
+    # Wanx (ImageGen, DashScope 通义万象)
+    wanx_api_key: SecretStr | None = None
+    wanx_base_url: str = "https://dashscope.aliyuncs.com/api/v1/services/aigc"
+    wanx_model_imagegen: str = "wanx2.1-t2i-plus"
+    wanx_request_timeout_s: float = 60.0
 
     # MiniMax (TTS)
     minimax_api_key: SecretStr | None = None
@@ -101,6 +107,13 @@ class Settings(BaseSettings):
             raise ValueError(
                 "PLL_MINIMAX_API_KEY is required when TTS provider is 'minimax'"
             )
+        if self.ai_imagegen_provider == "wanx":
+            key = self.wanx_api_key or self.qwen_api_key
+            if key is None:
+                raise ValueError(
+                    "PLL_WANX_API_KEY or PLL_QWEN_API_KEY is required "
+                    "when imagegen provider is 'wanx'"
+                )
         return self
 
 

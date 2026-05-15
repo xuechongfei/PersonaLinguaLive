@@ -4,6 +4,7 @@ from __future__ import annotations
 from app.adapters.imagegen.base import ImageGenAdapter
 from app.adapters.imagegen.fake import FakeImageGenAdapter
 from app.adapters.imagegen.openai import OpenAIImageGenAdapter
+from app.adapters.imagegen.wanx import WanxImageGenAdapter
 from app.adapters.llm.base import LLMAdapter
 from app.adapters.llm.deepseek_llm import DeepSeekLLMAdapter
 from app.adapters.llm.fake import FakeLLMAdapter
@@ -118,6 +119,19 @@ def build_imagegen_adapter(settings: Settings) -> ImageGenAdapter:
             base_url=settings.openai_base_url,
             model=settings.openai_model_imagegen,
             timeout_s=settings.openai_request_timeout_s,
+        )
+    if settings.ai_imagegen_provider == "wanx":
+        key = settings.wanx_api_key or settings.qwen_api_key
+        if key is None:
+            raise RuntimeError(
+                "wanx provider selected but PLL_WANX_API_KEY "
+                "(or PLL_QWEN_API_KEY) is missing"
+            )
+        return WanxImageGenAdapter(
+            api_key=key.get_secret_value(),
+            base_url=settings.wanx_base_url,
+            model=settings.wanx_model_imagegen,
+            timeout_s=settings.wanx_request_timeout_s,
         )
     raise RuntimeError(f"unknown imagegen provider: {settings.ai_imagegen_provider}")
 
