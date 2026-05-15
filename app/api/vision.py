@@ -1,8 +1,10 @@
 """POST /api/vision/analyze endpoint."""
 from __future__ import annotations
 
+import asyncio
+
 import structlog
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 from app.adapters.factory import build_vision_adapter
 from app.config import Settings, get_settings
@@ -14,7 +16,10 @@ from app.errors import (
     UnsupportedMediaError,
 )
 from app.schemas.vision import VisionAnalyzeResponse
+from app.services.scene_bible import SceneBibleService
 from app.services.vision_service import VisionService
+from app.services.world_assets import WorldAssetsService
+from app.services.world_store import WorldStore
 from app.utils.ratelimit import MemoryRateLimiter
 
 router = APIRouter(prefix="/api/vision", tags=["vision"])
@@ -51,6 +56,7 @@ def _client_ip(request: Request) -> str:
 async def analyze_image(
     request: Request,
     image: UploadFile = File(default=None),  # noqa: B008
+    user_level: str = Form("beginner"),  # noqa: B008
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> VisionAnalyzeResponse:
     if image is None or image.filename is None:
@@ -84,12 +90,54 @@ async def analyze_image(
         raise UnsafeImageError(reasons=result.reject_reasons)
 
     request_id = request.headers.get("x-request-id", "req_unknown")
-    log.info("vision.ok", objects=len(result.objects), request_id=request_id)
+    log.info("vision.ok", entities=len(result.entities), request_id=request_id)
+
+    # Generate SceneBible and spawn world asset generation
+    world_id = ""
+    world_store: WorldStore = request.app.state.world_store
+    scene_bible_service: SceneBibleService = request.app.state.scene_bible_service
+    world_assets_service: WorldAssetsService = request.app.state.world_assets_service
+
+    if result.entities:
+        try:
+            bible = await scene_bible_service.generate(
+                raw_scene=result.raw_scene or result.scene_summary,
+                entities=result.entities,
+                user_level=user_level,
+            )
+            world_id = world_store.put(bible)
+            # Spawn background world asset generation
+            asyncio.create_task(
+                _generate_and_store_assets(
+                    world_assets_service, bible, image_bytes, world_store, world_id
+                )
+            )
+        except Exception:
+            log.warning("vision.scene_bible_failed", request_id=request_id)
+            world_id = ""
 
     return VisionAnalyzeResponse(
         request_id=request_id,
         is_safe=True,
         reject_reasons=[],
         scene_summary=result.scene_summary,
+        raw_scene=result.raw_scene,
         objects=result.objects,
+        entities=result.entities,
+        world_id=world_id,
     )
+
+
+async def _generate_and_store_assets(
+    assets_service: WorldAssetsService,
+    bible,
+    image_bytes: bytes,
+    world_store: WorldStore,
+    world_id: str,
+):
+    try:
+        assets = await assets_service.generate_world(bible, image_bytes)
+        world_store.put_assets(world_id, assets)
+    except Exception as exc:
+        log.error("vision.world_assets_failed", world_id=world_id, error=str(exc))
+        world_store.set_state(world_id, "error")
