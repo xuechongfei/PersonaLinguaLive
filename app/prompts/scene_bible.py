@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 _SYSTEM = """You are a world builder for an English learning app.
 
 Given a scene description and a list of entities (objects and people),

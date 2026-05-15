@@ -56,7 +56,7 @@ def _client_ip(request: Request) -> str:
 async def analyze_image(
     request: Request,
     image: UploadFile = File(default=None),  # noqa: B008
-    user_level: str = Form("beginner"),  # noqa: B008
+    user_level: str = Form("beginner"),
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> VisionAnalyzeResponse:
     if image is None or image.filename is None:
@@ -107,7 +107,7 @@ async def analyze_image(
             )
             world_id = world_store.put(bible)
             # Spawn background world asset generation
-            asyncio.create_task(
+            asyncio.create_task(  # noqa: RUF006
                 _generate_and_store_assets(
                     world_assets_service, bible, image_bytes, world_store, world_id
                 )

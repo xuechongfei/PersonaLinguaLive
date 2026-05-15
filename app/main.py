@@ -8,9 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.adapters.factory import build_imagegen_adapter, build_llm_adapter
 from app.api import health
 from app.api.deps import RequestIdMiddleware
-from app.adapters.factory import build_imagegen_adapter, build_llm_adapter
 from app.config import Settings
 from app.services.scene_bible import SceneBibleService
 from app.services.world_assets import WorldAssetsService

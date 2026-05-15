@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from app.schemas.world import CrossRelationship, NPCSpec, SceneBible, VoiceTraits, WorldSpec
 from app.prompts.chat_system import build_chat_system_message_world
+from app.schemas.world import CrossRelationship, NPCSpec, SceneBible, VoiceTraits, WorldSpec
 
 
 @pytest.fixture

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from app.prompts.sprite_gen import build_sprite_prompt
 
 

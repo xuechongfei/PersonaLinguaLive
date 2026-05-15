@@ -28,7 +28,9 @@ class VisionService:
                 is_safe=False,
                 reject_reasons=list(reviewed.reject_reasons),
                 scene_summary=reviewed.scene_summary,
+                raw_scene=reviewed.raw_scene,
                 objects=[],
+                entities=[],
             )
 
         # 过滤过小 + 截断到 _MAX_OBJECTS,保留面积最大的 12 个
@@ -36,9 +38,16 @@ class VisionService:
         kept.sort(key=lambda o: o.bbox.w * o.bbox.h, reverse=True)
         kept = kept[:_MAX_OBJECTS]
 
+        # Also filter entities by area for consistency
+        kept_entities = [e for e in reviewed.entities if (e.bbox.w * e.bbox.h) >= _MIN_OBJECT_AREA]
+        kept_entities.sort(key=lambda e: e.bbox.w * e.bbox.h, reverse=True)
+        kept_entities = kept_entities[:_MAX_OBJECTS]
+
         return VisionResult(
             is_safe=True,
             reject_reasons=[],
             scene_summary=reviewed.scene_summary,
+            raw_scene=reviewed.raw_scene,
             objects=kept,
+            entities=kept_entities,
         )

@@ -65,8 +65,10 @@ def test_chat_websocket_init_frame_accepts_voice_id(monkeypatch):
     class _SpyOrchestrator:
         def __init__(self, *a, **kw): pass
         async def chat_stream(self, session_id, user_message, system_message,
-                              learner_context_message=None, voice_id=None):
+                              *, learner_context_message=None, voice_id=None,
+                              scene_bible=None, npc_id=""):
             captured["voice_id"] = voice_id
+            captured["npc_id"] = npc_id
             yield {"type": "result", "segments": {"speak": "hi", "learning": "", "followup": ""}, "audio_base64": ""}
 
     monkeypatch.setattr("app.api.chat.ChatOrchestrator", _SpyOrchestrator)

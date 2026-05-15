@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from app.prompts.background_gen import build_background_prompt
 
 

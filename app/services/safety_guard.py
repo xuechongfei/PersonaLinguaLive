@@ -31,5 +31,7 @@ class SafetyGuard:
             is_safe=is_safe,
             reject_reasons=reasons,
             scene_summary=result.scene_summary,
+            raw_scene=result.raw_scene,
             objects=result.objects,
+            entities=result.entities,
         )

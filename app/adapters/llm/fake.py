@@ -34,6 +34,46 @@ _FAKE_SUMMARY_RESPONSE: str = json.dumps(
     }
 )
 
+_FAKE_SCENE_BIBLE_RESPONSE: str = json.dumps(
+    {
+        "world": {
+            "place": "cozy kitchen",
+            "time_of_day": "morning",
+            "weather": "sunny",
+            "mood": "warm",
+            "ambient_sounds": ["kitchen_sizzle", "water_pouring"],
+            "bgm_mood": "warm",
+            "art_style_prompt": "soft watercolor cartoon, warm palette",
+        },
+        "npcs": [
+            {
+                "entity_id": "e1",
+                "kind": "object",
+                "persona_name": "Tilly",
+                "role_in_scene": "a cheerful teacup on the counter",
+                "relationship_to_user": "your morning companion",
+                "personality": "warm and talkative, loves gossip",
+                "voice_traits": {"gender": "female", "age": "adult", "tone": "warm"},
+                "vocab_focus": ["teacup", "brew", "steam", "aroma"],
+                "ambient_actions": ["steams gently", "clinks softly"],
+            },
+            {
+                "entity_id": "e2",
+                "kind": "object",
+                "persona_name": "Chester",
+                "role_in_scene": "a sturdy wooden chair",
+                "personality": "reliable and thoughtful",
+                "voice_traits": {"gender": "male", "age": "adult", "tone": "gruff"},
+                "vocab_focus": ["sturdy", "support", "rest"],
+                "ambient_actions": ["creaks slightly", "shifts weight"],
+            },
+        ],
+        "cross_relationships": [
+            {"from_entity": "e1", "to_entity": "e2", "note": "often sit together at breakfast"},
+        ],
+    }
+)
+
 
 class FakeLLMAdapter:
     def __init__(self) -> None:
@@ -47,7 +87,9 @@ class FakeLLMAdapter:
     ) -> str:
         self.last_messages = messages
         system = messages[0]["content"] if messages else ""
-        if "persona" in system.lower():
+        if "world builder" in system.lower() or "scene bible" in system.lower():
+            return _FAKE_SCENE_BIBLE_RESPONSE
+        if "persona_name" in system.lower() or "Persona name" in system:
             return _FAKE_PERSONA_RESPONSE
         if "summary" in system.lower() or "conversation" in system.lower():
             return _FAKE_SUMMARY_RESPONSE

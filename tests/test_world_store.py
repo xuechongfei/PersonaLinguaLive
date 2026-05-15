@@ -1,11 +1,11 @@
 from __future__ import annotations
+
 import pytest
+
 from app.schemas.world import (
-    NPCSpec,
     NPCSprites,
     SceneBible,
     SpriteSet,
-    VoiceTraits,
     WorldAssets,
     WorldSpec,
 )

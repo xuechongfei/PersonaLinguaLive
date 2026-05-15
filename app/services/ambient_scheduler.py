@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+
 import structlog
 
 from app.adapters.llm.base import LLMAdapter

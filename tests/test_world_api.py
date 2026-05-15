@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from app.schemas.world import (
-    NPCSpec,
     SceneBible,
-    VoiceTraits,
     WorldAssets,
     WorldSpec,
 )

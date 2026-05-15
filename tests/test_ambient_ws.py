@@ -11,8 +11,9 @@ def client(monkeypatch):
     monkeypatch.setenv("PLL_AI_VISION_PROVIDER", "fake")
     monkeypatch.setenv("PLL_AI_IMAGEGEN_PROVIDER", "fake")
     monkeypatch.setenv("PLL_RATE_LIMIT_CHAT_MESSAGES_PER_MIN", "100")
-    from app.main import create_app
     from fastapi.testclient import TestClient
+
+    from app.main import create_app
     return TestClient(create_app())
 
 

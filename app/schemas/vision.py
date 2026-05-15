@@ -57,3 +57,4 @@ class VisionAnalyzeResponse(BaseModel):
     raw_scene: str = ""
     objects: list[DetectedObject] = Field(default_factory=list)
     entities: list[Entity] = Field(default_factory=list)
+    world_id: str = ""  # Living Scene: world_id for polling SSE
