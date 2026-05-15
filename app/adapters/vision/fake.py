@@ -1,8 +1,12 @@
 """FakeVisionAdapter: deterministic stub for tests + offline development."""
 from __future__ import annotations
 
+import structlog
+
 from app.adapters.vision.base import VisionIntent
 from app.schemas.vision import BBox, DetectedObject, Entity, VisionResult
+
+log = structlog.get_logger("pll.adapter.fake_vision")
 
 _TRIGGERS: dict[bytes, str] = {
     b"PLL_FAKE_NSFW": "nsfw",
@@ -85,9 +89,11 @@ class FakeVisionAdapter:
         *,
         intent: VisionIntent = "safety_and_objects",
     ) -> VisionResult:
+        log.info("fake.vision.call", image_bytes=len(image_bytes))
         head = image_bytes[:32]
         for marker, reason in _TRIGGERS.items():
             if marker in head:
+                log.info("fake.vision.unsafe", reason=reason)
                 return VisionResult(
                     is_safe=False,
                     reject_reasons=[reason],
@@ -96,4 +102,6 @@ class FakeVisionAdapter:
                     objects=[],
                     entities=[],
                 )
-        return _DEFAULT_SAFE.model_copy(deep=True)
+        result = _DEFAULT_SAFE.model_copy(deep=True)
+        log.info("fake.vision.ok", entities=len(result.entities))
+        return result

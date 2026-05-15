@@ -66,6 +66,8 @@ class MiniMaxTTSAdapter:
             "Content-Type": "application/json",
         }
 
+        log.info("minimax.tts.call", model=self._model, voice_id=voice_id, text_len=len(text))
+
         try:
             async with httpx.AsyncClient(timeout=self._timeout_s) as client:
                 resp = await client.post(url, json=body, headers=headers)
@@ -109,7 +111,9 @@ class MiniMaxTTSAdapter:
             )
 
         try:
-            return bytes.fromhex(audio_hex)
+            audio = bytes.fromhex(audio_hex)
+            log.info("minimax.tts.ok", bytes=len(audio))
+            return audio
         except ValueError as exc:
             log.warning("minimax.tts.invalid_hex", error=str(exc))
             raise UpstreamFailureError(

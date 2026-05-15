@@ -45,6 +45,8 @@ class DeepSeekLLMAdapter:
             "Content-Type": "application/json",
         }
 
+        log.info("deepseek.llm.call", model=self._model, messages=len(messages), temperature=temperature)
+
         try:
             async with httpx.AsyncClient(timeout=self._timeout_s) as client:
                 resp = await client.post(url, json=body, headers=headers)
@@ -64,7 +66,9 @@ class DeepSeekLLMAdapter:
 
         try:
             envelope = resp.json()
-            return envelope["choices"][0]["message"]["content"]
+            content = envelope["choices"][0]["message"]["content"]
+            log.info("deepseek.llm.ok", len=len(content))
+            return content
         except (KeyError, IndexError, ValueError) as exc:
             log.warning("deepseek.llm.parse_error", error=str(exc))
             raise UpstreamFailureError(

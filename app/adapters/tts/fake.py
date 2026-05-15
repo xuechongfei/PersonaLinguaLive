@@ -5,6 +5,10 @@ import io
 import struct
 import wave
 
+import structlog
+
+log = structlog.get_logger("pll.adapter.fake_tts")
+
 
 class FakeTTSAdapter:
     def __init__(self) -> None:
@@ -19,6 +23,7 @@ class FakeTTSAdapter:
     ) -> bytes:
         self.last_text = text
         self.last_voice = voice
+        log.info("fake.tts.call", text_len=len(text), voice=voice)
 
         duration_s = max(0.5, len(text) * 0.05)
         sample_rate = 8000

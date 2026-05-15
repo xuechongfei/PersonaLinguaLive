@@ -4,6 +4,10 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncGenerator
 
+import structlog
+
+log = structlog.get_logger("pll.adapter.fake_llm")
+
 _FAKE_PERSONA_RESPONSE: str = json.dumps(
     {
         "persona_name": "Tilly the Teacup",
@@ -88,11 +92,15 @@ class FakeLLMAdapter:
         self.last_messages = messages
         system = messages[0]["content"] if messages else ""
         if "world builder" in system.lower() or "scene bible" in system.lower():
+            log.info("fake.llm.call", mode="scene_bible")
             return _FAKE_SCENE_BIBLE_RESPONSE
         if "persona_name" in system.lower() or "Persona name" in system:
+            log.info("fake.llm.call", mode="persona")
             return _FAKE_PERSONA_RESPONSE
         if "summary" in system.lower() or "conversation" in system.lower():
+            log.info("fake.llm.call", mode="summary")
             return _FAKE_SUMMARY_RESPONSE
+        log.info("fake.llm.call", mode="chat")
         return _FAKE_CHAT_RESPONSE
 
     async def generate_stream(

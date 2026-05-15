@@ -50,6 +50,8 @@ class QwenVisionAdapter:
             "Content-Type": "application/json",
         }
 
+        log.info("qwen.vision.call", model=self._model, image_bytes=len(image_bytes))
+
         try:
             async with httpx.AsyncClient(timeout=self._timeout_s) as client:
                 resp = await client.post(url, json=body, headers=headers)
@@ -77,4 +79,7 @@ class QwenVisionAdapter:
                 provider=_PROVIDER, message="invalid JSON from upstream"
             ) from exc
 
-        return _payload_to_result(payload)
+        result = _payload_to_result(payload)
+        log.info("qwen.vision.ok", is_safe=result.is_safe, entities=len(result.entities),
+                 raw_scene=result.raw_scene[:80] if result.raw_scene else "")
+        return result

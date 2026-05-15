@@ -43,6 +43,8 @@ class OpenAILLMAdapter:
             "Content-Type": "application/json",
         }
 
+        log.info("openai.llm.call", model=self._model, messages=len(messages), temperature=temperature)
+
         try:
             async with httpx.AsyncClient(timeout=self._timeout_s) as client:
                 resp = await client.post(url, json=body, headers=headers)
@@ -62,7 +64,9 @@ class OpenAILLMAdapter:
 
         try:
             envelope = resp.json()
-            return envelope["choices"][0]["message"]["content"]
+            content = envelope["choices"][0]["message"]["content"]
+            log.info("openai.llm.ok", len=len(content))
+            return content
         except (KeyError, IndexError, ValueError) as exc:
             log.warning("openai.llm.parse_error", error=str(exc))
             raise UpstreamFailureError(provider="openai", message="invalid response from upstream") from exc

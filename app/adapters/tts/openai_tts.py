@@ -41,6 +41,8 @@ class OpenAITTSAdapter:
             "Content-Type": "application/json",
         }
 
+        log.info("openai.tts.call", model=self._model, voice=voice, text_len=len(text))
+
         try:
             async with httpx.AsyncClient(timeout=self._timeout_s) as client:
                 resp = await client.post(url, json=body, headers=headers)
@@ -58,4 +60,6 @@ class OpenAITTSAdapter:
                 message=f"openai returned {resp.status_code}",
             )
 
-        return resp.content
+        audio = resp.content
+        log.info("openai.tts.ok", bytes=len(audio))
+        return audio

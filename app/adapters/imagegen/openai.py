@@ -20,6 +20,7 @@ class OpenAIImageGenAdapter(ImageGenAdapter):
         self._timeout_s = timeout_s
 
     async def text_to_image(self, prompt, *, size="1024x1024", reference_image=None):
+        log.info("openai.imagegen.text_to_image.call", model=self._model, size=size, prompt_len=len(prompt))
         body = {
             "model": self._model,
             "prompt": prompt,
@@ -27,9 +28,12 @@ class OpenAIImageGenAdapter(ImageGenAdapter):
             "n": 1,
             "response_format": "b64_json",
         }
-        return await self._post_generations(body)
+        result = await self._post_generations(body)
+        log.info("openai.imagegen.text_to_image.ok", bytes=len(result.image_bytes))
+        return result
 
     async def image_to_image(self, image_bytes, prompt, *, size="1024x1024", strength=0.7):
+        log.info("openai.imagegen.image_to_image.call", model=self._model, size=size, prompt_len=len(prompt), src_bytes=len(image_bytes))
         url = f"{self._base_url}/images/edits"
         headers = {"Authorization": f"Bearer {self._api_key}"}
         files = {"image": ("input.png", image_bytes, "image/png")}
