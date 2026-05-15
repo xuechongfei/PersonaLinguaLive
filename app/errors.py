@@ -88,6 +88,17 @@ class UpstreamTimeoutError(PLLError):
         self.provider = provider
 
 
+class WorldNotFoundError(ValueError):
+    def __init__(self, world_id: str) -> None:
+        super().__init__(f"world not found: {world_id}")
+        self.world_id = world_id
+
+
+class SceneBibleParseError(ValueError):
+    def __init__(self, message: str = "invalid scene bible JSON") -> None:
+        super().__init__(message)
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(PLLError)
     async def _pll_error_handler(_request: Request, exc: PLLError) -> JSONResponse:
