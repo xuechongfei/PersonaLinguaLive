@@ -1,6 +1,7 @@
 """WebSocket /api/chat endpoint and POST /api/chat/summary."""
 from __future__ import annotations
 
+import asyncio
 import json
 
 import structlog
@@ -8,10 +9,11 @@ from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
 
 from app.adapters.factory import build_llm_adapter, build_tts_adapter
 from app.config import Settings, get_settings
-from app.errors import RateLimitedError
+from app.errors import RateLimitedError, WorldNotFoundError
 from app.prompts.chat_summary import build_summary_messages
 from app.prompts.learner_context import build_learner_context_message
 from app.schemas.chat import ChatSummaryRequest, ChatSummaryResponse
+from app.services.ambient_scheduler import AmbientScheduler
 from app.services.chat_orchestrator import ChatOrchestrator
 from app.services.context_manager import ContextManager
 from app.utils.ratelimit import MemoryRateLimiter
@@ -76,7 +78,9 @@ async def chat_websocket(websocket: WebSocket) -> None:
             {"type": "init", "session_id": str, "system_message": dict,
              "user_level": str (optional, default "beginner"),
              "learner_context": {"level": str, "recent_vocab": list[str],
-                                  "weak_areas": list[str]} (optional)}
+                                  "weak_areas": list[str]} (optional),
+             "world_id": str (optional),
+             "npc_id": str (optional)}
 
         2. Client sends user messages:
             {"type": "user_message", "content": str}
@@ -86,11 +90,13 @@ async def chat_websocket(websocket: WebSocket) -> None:
             {"type": "speak_text", "content": str}     # emitted once </speak> closes
             {"type": "audio", "audio_base64": str}     # emitted as soon as TTS done
             {"type": "result", "segments": {...}, "audio_base64": str}
+            {"type": "ambient", ...}                    # ambient NPC events
             {"type": "error", "message": str}
     """
     await websocket.accept()
 
     session_id: str | None = None
+    ambient_task: asyncio.Task | None = None
 
     try:
         # 1. Receive init frame
@@ -105,6 +111,8 @@ async def chat_websocket(websocket: WebSocket) -> None:
         user_level: str = init_data.get("user_level", "beginner")
         learner_context_raw = init_data.get("learner_context") or {}
         voice_id: str | None = init_data.get("voice_id")
+        world_id: str = init_data.get("world_id", "")
+        npc_id: str = init_data.get("npc_id", "")
         learner_context_message = build_learner_context_message(
             level=learner_context_raw.get("level") or user_level,
             recent_vocab=learner_context_raw.get("recent_vocab"),
@@ -129,11 +137,64 @@ async def chat_websocket(websocket: WebSocket) -> None:
         context_mgr = _ensure_context_manager(settings)
         orchestrator = ChatOrchestrator(llm=llm, tts=tts, context=context_mgr)
 
-        log.info("chat.session_start", session_id=session_id, user_level=user_level)
+        # Look up scene bible if world_id is provided
+        scene_bible = None
+        world_store = getattr(websocket.app.state, "world_store", None)
+        if world_id and world_store:
+            try:
+                scene_bible = world_store.get_or_raise(world_id)
+            except WorldNotFoundError:
+                pass
 
-        # 2. Chat loop
-        while True:
+        # Start ambient scheduler if we have a scene bible with NPCs
+        ambient_queue: asyncio.Queue = asyncio.Queue()
+        ambient_task: asyncio.Task | None = None
+        if scene_bible is not None and len(scene_bible.npcs) > 1:
+            scheduler = AmbientScheduler(llm=llm, bible=scene_bible)
+
+            async def ambient_sender():
+                await scheduler.run(
+                    active_npc_id=npc_id,
+                    is_streaming=lambda: context_mgr.is_streaming((session_id, npc_id) if npc_id else session_id),
+                    ws_send=ambient_queue.put,
+                )
+
+            ambient_task = asyncio.create_task(ambient_sender())
+
+        log.info("chat.session_start", session_id=session_id, user_level=user_level,
+                 world_id=world_id, npc_id=npc_id)
+
+        # 2. Chat loop — handles user messages AND ambient events
+        async def _receive_ws():
+            """Receive a user message from the WS and put it on an internal queue."""
             data = await websocket.receive_json()
+            return ("ws", data)
+
+        async def _receive_ambient():
+            """Receive an ambient event from the scheduler queue."""
+            event = await ambient_queue.get()
+            return ("ambient", event)
+
+        while True:
+            # Wait for either a user message or an ambient event
+            pending = [asyncio.create_task(_receive_ws())]
+            if ambient_task is not None:
+                pending.append(asyncio.create_task(_receive_ambient()))
+
+            done, pending = await asyncio.wait(
+                pending, return_when=asyncio.FIRST_COMPLETED
+            )
+            for task in pending:
+                task.cancel()
+
+            source, data = next(iter(done)).result()
+
+            if source == "ambient":
+                # Send ambient event to client
+                await websocket.send_json({"type": "ambient", **data})
+                continue
+
+            # source == "ws": user message
             if data.get("type") != "user_message":
                 continue
 
@@ -149,20 +210,22 @@ async def chat_websocket(websocket: WebSocket) -> None:
                 system_message,
                 learner_context_message=learner_context_message,
                 voice_id=voice_id,
+                scene_bible=scene_bible,
+                npc_id=npc_id,
             ):
                 await websocket.send_json(event)
 
     except WebSocketDisconnect:
-        log.info(
-            "chat.disconnect",
-            session_id=session_id if "session_id" in dir() else "unknown",
-        )
+        log.info("chat.disconnect", session_id=session_id or "unknown")
     except Exception as exc:
         log.error("chat.error", error=str(exc))
         try:
             await websocket.send_json({"type": "error", "message": str(exc)})
         except Exception:
             pass
+    finally:
+        if ambient_task is not None:
+            ambient_task.cancel()
 
 
 @router.post("/summary", response_model=ChatSummaryResponse)
