@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # Qwen-VL (Vision, DashScope compatible-mode)
     qwen_api_key: SecretStr | None = None
     qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    qwen_model_vision: str = "qwen-vl-max-latest"
+    qwen_model_vision: str = "qwen3-vl-plus"
     qwen_request_timeout_s: float = 30.0
 
     # MiniMax (TTS)
