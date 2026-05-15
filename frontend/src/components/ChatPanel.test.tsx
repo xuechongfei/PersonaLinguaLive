@@ -2,38 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ChatClient } from '../lib/chat';
 
-// Mock the chat module
 vi.mock('../lib/chat', () => ({
   ChatClient: vi.fn(),
 }));
 
-// Mock child components that may have side effects
-vi.mock('./PersonaMouth', () => ({
-  default: () => null,
-}));
-
-vi.mock('./LearningTip', () => ({
-  default: () => null,
-}));
-
-vi.mock('./MicButton', () => ({
-  default: () => null,
-}));
+vi.mock('./PersonaMouth', () => ({ default: () => null }));
+vi.mock('./LearningTip', () => ({ default: () => null }));
+vi.mock('./MicButton', () => ({ default: () => null }));
 
 describe('ChatPanel', () => {
   let mockClient: any;
 
   beforeEach(() => {
-    // jsdom does not implement scrollIntoView
     Element.prototype.scrollIntoView = vi.fn();
-
     mockClient = {
-      on: vi.fn(),
-      off: vi.fn(),
-      connect: vi.fn(),
-      sendMessage: vi.fn(),
-      disconnect: vi.fn(),
-      isConnected: false,
+      on: vi.fn(), off: vi.fn(), connect: vi.fn(),
+      sendMessage: vi.fn(), disconnect: vi.fn(), isConnected: false,
     };
     (ChatClient as any).mockImplementation(() => mockClient);
   });
@@ -41,7 +25,8 @@ describe('ChatPanel', () => {
   it('renders persona name in header', async () => {
     const { default: ChatPanel } = await import('./ChatPanel');
     render(<ChatPanel client={mockClient} personaName="Tilly" />);
-    expect(screen.getByText('Tilly')).toBeInTheDocument();
+    const tillyHeaders = screen.getAllByText('Tilly');
+    expect(tillyHeaders.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders welcome message', async () => {
@@ -67,13 +52,10 @@ describe('ChatPanel', () => {
   it('sends message on button click', async () => {
     const { default: ChatPanel } = await import('./ChatPanel');
     render(<ChatPanel client={mockClient} personaName="Tilly" />);
-
     const input = screen.getByPlaceholderText('Type a message...');
     fireEvent.change(input, { target: { value: 'Hello!' } });
-
     const sendBtn = screen.getByRole('button', { name: /send/i });
     expect(sendBtn).not.toBeDisabled();
-
     fireEvent.click(sendBtn);
     expect(mockClient.sendMessage).toHaveBeenCalledWith('Hello!');
   });
@@ -81,11 +63,9 @@ describe('ChatPanel', () => {
   it('sends message on Enter key', async () => {
     const { default: ChatPanel } = await import('./ChatPanel');
     render(<ChatPanel client={mockClient} personaName="Tilly" />);
-
     const input = screen.getByPlaceholderText('Type a message...');
     fireEvent.change(input, { target: { value: 'Hi!' } });
     fireEvent.keyDown(input, { key: 'Enter' });
-
     expect(mockClient.sendMessage).toHaveBeenCalledWith('Hi!');
   });
 
@@ -93,7 +73,8 @@ describe('ChatPanel', () => {
     const onEndChat = vi.fn();
     const { default: ChatPanel } = await import('./ChatPanel');
     render(<ChatPanel client={mockClient} personaName="Tilly" onEndChat={onEndChat} />);
-    fireEvent.click(screen.getByRole('button', { name: /end chat/i }));
+    const endBtn = screen.getByRole('button', { name: 'End' });
+    fireEvent.click(endBtn);
     expect(onEndChat).toHaveBeenCalled();
   });
 });

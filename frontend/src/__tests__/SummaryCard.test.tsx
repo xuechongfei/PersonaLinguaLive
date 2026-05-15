@@ -31,15 +31,16 @@ describe('SummaryCard', () => {
   it('renders fluency score', () => {
     render(<SummaryCard summary={fullSummary} personaName="Tilly" />);
     expect(screen.getByText('8')).toBeInTheDocument();
-    expect(screen.getByText(/Fluency Score/)).toBeInTheDocument();
+    expect(screen.getByText('Great Job')).toBeInTheDocument();
   });
 
   it('renders persona name', () => {
     render(<SummaryCard summary={fullSummary} personaName="Tilly" />);
-    expect(screen.getByText(/Tilly/)).toBeInTheDocument();
+    const tillyMatches = screen.getAllByText(/Tilly/);
+    expect(tillyMatches.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders new words as chips', () => {
+  it('renders new words', () => {
     render(<SummaryCard summary={fullSummary} personaName="Tilly" />);
     expect(screen.getByText('teacup')).toBeInTheDocument();
     expect(screen.getByText('saucer')).toBeInTheDocument();
@@ -71,24 +72,20 @@ describe('SummaryCard', () => {
 
   it('calls onPracticeAgain when button clicked', () => {
     const onPracticeAgain = vi.fn();
-    render(
-      <SummaryCard summary={fullSummary} personaName="Tilly" onPracticeAgain={onPracticeAgain} />
-    );
+    render(<SummaryCard summary={fullSummary} personaName="Tilly" onPracticeAgain={onPracticeAgain} />);
     fireEvent.click(screen.getByRole('button', { name: /practice/i }));
     expect(onPracticeAgain).toHaveBeenCalled();
   });
 
-  it('score 1-3 shows red styling', () => {
+  it('low fluency shows keep going label', () => {
     const low: SummaryData = { ...fullSummary, fluencyScore: 2 };
-    const { container } = render(<SummaryCard summary={low} personaName="Tilly" />);
-    const scoreBadge = container.querySelector('.flex.h-20');
-    expect(scoreBadge).toBeInTheDocument();
+    render(<SummaryCard summary={low} personaName="Tilly" />);
+    expect(screen.getByText('Keep Going')).toBeInTheDocument();
   });
 
-  it('score 7-10 shows green styling', () => {
+  it('high fluency shows great job label', () => {
     const high: SummaryData = { ...fullSummary, fluencyScore: 9 };
-    const { container } = render(<SummaryCard summary={high} personaName="Tilly" />);
-    const scoreBadge = container.querySelector('.flex.h-20');
-    expect(scoreBadge).toBeInTheDocument();
+    render(<SummaryCard summary={high} personaName="Tilly" />);
+    expect(screen.getByText('Great Job')).toBeInTheDocument();
   });
 });

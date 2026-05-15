@@ -1,10 +1,7 @@
 import { useStudioStore } from '../lib/store';
 import PersonaMouth from './PersonaMouth';
 
-interface Props {
-  renderedWidth: number;
-  renderedHeight: number;
-}
+interface Props { renderedWidth: number; renderedHeight: number; }
 
 export default function SpeakingOverlay({ renderedWidth, renderedHeight }: Props) {
   const selectedObject = useStudioStore((s) => s.selectedObject);
@@ -20,30 +17,19 @@ export default function SpeakingOverlay({ renderedWidth, renderedHeight }: Props
   const pixelH = h * renderedHeight;
 
   const mouthSize = Math.min(pixelW, pixelH) * 0.6;
-
   if (mouthSize < 60) return null;
 
   const mouthX = pixelX + (pixelW - mouthSize) / 2;
   const mouthY = pixelY - mouthSize * 0.3;
 
   return (
-    <svg
-      className="absolute inset-0 pointer-events-none"
-      width={renderedWidth}
-      height={renderedHeight}
-      viewBox={`0 0 ${renderedWidth} ${renderedHeight}`}
-    >
-      <foreignObject
-        x={mouthX}
-        y={mouthY}
-        width={mouthSize}
-        height={mouthSize}
-      >
-        <PersonaMouth
-          isSpeaking={isSpeaking}
-          analyserNode={analyserNode}
-          size={mouthSize}
-        />
+    <svg className="absolute inset-0 pointer-events-none"
+      width={renderedWidth} height={renderedHeight}
+      viewBox={`0 0 ${renderedWidth} ${renderedHeight}`}>
+      <foreignObject x={mouthX} y={mouthY} width={mouthSize} height={mouthSize}>
+        <div className={`transition-all duration-300 ${isSpeaking ? 'scale-110' : 'scale-100'}`}>
+          <PersonaMouth isSpeaking={isSpeaking} analyserNode={analyserNode} size={mouthSize} />
+        </div>
       </foreignObject>
     </svg>
   );

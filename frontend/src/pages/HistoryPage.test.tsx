@@ -63,7 +63,7 @@ describe('HistoryPage', () => {
     conversations.set('a', sampleA);
     render(<HistoryPage />);
     await waitFor(() => {
-      expect(screen.getByText(/Score 8/)).toBeInTheDocument();
+      expect(screen.getByText('8/10')).toBeInTheDocument();
     });
   });
 

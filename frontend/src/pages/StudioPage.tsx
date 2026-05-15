@@ -38,11 +38,7 @@ export default function StudioPage() {
 
   async function handleLevelChange(next: UserLevel) {
     store.getState().setLevel(next);
-    try {
-      await persistLevel(next);
-    } catch {
-      /* non-fatal */
-    }
+    try { await persistLevel(next); } catch { /* non-fatal */ }
   }
 
   function handleTurnComplete(turn: {
@@ -66,7 +62,7 @@ export default function StudioPage() {
       store.getState().setAnalysisResult(result);
       store.getState().setStatus({ kind: 'ready', result });
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : '出了点问题,请重试。';
+      const msg = e instanceof ApiError ? e.message : 'Something went wrong. Please try again.';
       store.getState().setStatus({ kind: 'error', message: msg });
     }
   }
@@ -75,10 +71,8 @@ export default function StudioPage() {
     const currentStatus = store.getState().status;
     if (currentStatus.kind === 'persona_loading') return;
 
-    // Disconnect existing chat if mid-chat switch
     store.getState().chatClient?.disconnect();
     store.getState().setChatClient(null);
-
     store.getState().setSelectedObject(obj);
     store.getState().setStatus({ kind: 'persona_loading', object: obj });
 
@@ -104,18 +98,11 @@ export default function StudioPage() {
       };
 
       const currentFile = store.getState().file;
-      if (currentFile) {
-        saveImage(sessionId, currentFile).catch(() => {});
-      }
+      if (currentFile) { saveImage(sessionId, currentFile).catch(() => {}); }
 
       const client = new ChatClient();
-
       let learnerContext = null;
-      try {
-        learnerContext = await collectLearnerContext(store.getState().level);
-      } catch {
-        /* non-fatal */
-      }
+      try { learnerContext = await collectLearnerContext(store.getState().level); } catch { /* non-fatal */ }
 
       client.connect(
         sessionId,
@@ -128,11 +115,7 @@ export default function StudioPage() {
       store.getState().setSessionId(sessionId);
       store.getState().setConversation(conv);
       store.getState().setChatClient(client);
-      store.getState().setStatus({
-        kind: 'chatting',
-        personaName: persona.persona_name,
-        sessionId,
-      });
+      store.getState().setStatus({ kind: 'chatting', personaName: persona.persona_name, sessionId });
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'Failed to create persona.';
       store.getState().setStatus({ kind: 'error', message: msg });
@@ -151,7 +134,6 @@ export default function StudioPage() {
         session_id: store.getState().sessionId,
         user_level: store.getState().level,
       });
-
       const summaryData: SummaryData = {
         newWords: summary.new_words,
         grammarPoints: summary.grammar_points,
@@ -159,7 +141,6 @@ export default function StudioPage() {
         strengths: summary.strengths,
         areasToImprove: summary.areas_to_improve,
       };
-
       const conv = store.getState().conversation;
       if (conv) {
         conv.summary = {
@@ -172,12 +153,7 @@ export default function StudioPage() {
         conv.updatedAt = Date.now();
         saveConversation(conv.sessionId, conv).catch(() => {});
       }
-
-      store.getState().setStatus({
-        kind: 'summary',
-        data: summaryData,
-        personaName,
-      });
+      store.getState().setStatus({ kind: 'summary', data: summaryData, personaName });
     } catch {
       store.getState().setStatus({ kind: 'error', message: 'Failed to fetch summary.' });
     }
@@ -189,44 +165,39 @@ export default function StudioPage() {
     store.getState().setImageSize(null);
   }
 
-  function handleReset() {
-    store.getState().reset();
-  }
+  function handleReset() { store.getState().reset(); }
 
-  function handleImageReady(size: ImageReadyInfo) {
-    store.getState().setImageSize(size);
-  }
-
-  const showAnalysisBar =
-    status.kind === 'analyzing' ||
-    status.kind === 'ready' ||
-    status.kind === 'error' ||
-    status.kind === 'persona_loading';
+  function handleImageReady(size: ImageReadyInfo) { store.getState().setImageSize(size); }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
-      <h1 className="text-2xl font-semibold text-center">Studio</h1>
-      <p className="mt-1 mb-6 text-center text-sm text-slate-500">
-        Upload a photo and chat with the objects inside!
-      </p>
+    <main className="min-h-screen bg-cream px-4 py-8 text-ink">
+      {/* Header */}
+      <header className="text-center mb-8 animate-slide-up">
+        <h1 className="font-display text-3xl text-ink">Studio</h1>
+        <p className="mt-1 text-sm text-ink-light">
+          Upload a photo and chat with the objects inside
+        </p>
+      </header>
 
+      {/* Upload state */}
       {!file && (
-        <>
+        <div className="animate-slide-up">
           <div className="mx-auto mb-4 flex max-w-3xl items-center justify-between gap-3">
-            <label className="text-sm font-medium text-slate-600">English level</label>
+            <label className="text-sm font-semibold text-ink-light">Your English Level</label>
             <LevelSelector value={level} onChange={handleLevelChange} />
           </div>
           <UploadZone onFile={handleFile} />
           <div className="mx-auto max-w-3xl">
             <SceneGallery onSelectScene={handleFile} />
           </div>
-        </>
+        </div>
       )}
 
+      {/* Image + overlays */}
       {file && (
-        <section className="mx-auto w-full max-w-3xl">
-          <div className="relative inline-block">
-            <ImageCanvas file={file} alt="Selected image" onReady={handleImageReady} />
+        <section className="mx-auto w-full max-w-3xl animate-pop-in">
+          <div className="relative inline-block rounded-3xl overflow-hidden shadow-card">
+            <ImageCanvas file={file} alt="Selected" onReady={handleImageReady} />
 
             {(status.kind === 'ready' || status.kind === 'chatting') && imageSize && analysisResult && (
               <HotspotOverlay
@@ -245,37 +216,43 @@ export default function StudioPage() {
             )}
           </div>
 
-          {showAnalysisBar && (
-            <div className="mt-4 flex items-center gap-3">
-              <button
-                type="button"
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-white"
-                onClick={handleReset}
-              >
-                Reset
-              </button>
-              {status.kind === 'analyzing' && (
-                <span className="text-sm text-slate-500">Analyzing...</span>
-              )}
-              {status.kind === 'ready' && analysisResult && (
-                <span className="text-sm text-slate-500">
-                  {analysisResult.objects.length} objects detected
-                </span>
-              )}
-              {status.kind === 'persona_loading' && (
-                <span className="text-sm text-slate-500">Creating persona...</span>
-              )}
-            </div>
-          )}
+          {/* Status bar */}
+          <div className="mt-4 flex items-center gap-3">
+            <button type="button" className="btn-ghost" onClick={handleReset}>
+              {'←'} Reset
+            </button>
+
+            {status.kind === 'analyzing' && (
+              <span className="inline-flex items-center gap-2 text-sm text-ink-light">
+                <span className="w-2 h-2 rounded-full bg-honey animate-pulse-soft" />
+                Analyzing your image...
+              </span>
+            )}
+
+            {status.kind === 'ready' && analysisResult && (
+              <span className="text-sm text-ink-light font-medium">
+                {analysisResult.objects.length} object{analysisResult.objects.length > 1 ? 's' : ''} found — tap one to start
+              </span>
+            )}
+
+            {status.kind === 'persona_loading' && (
+              <span className="inline-flex items-center gap-2 text-sm text-ink-light">
+                <span className="w-2 h-2 rounded-full bg-teal animate-pulse-soft" />
+                Creating persona...
+              </span>
+            )}
+          </div>
 
           {status.kind === 'error' && (
-            <p role="alert" className="mt-4 text-sm text-rose-600">
+            <div role="alert" className="mt-4 rounded-2xl bg-rose-light border border-rose/20 px-4 py-3 text-sm text-rose flex items-center gap-2">
+              <span>{'⚠'}</span>
               {status.message}
-            </p>
+            </div>
           )}
         </section>
       )}
 
+      {/* Chat panel */}
       {status.kind === 'chatting' && chatClient && (
         <ChatPanel
           client={chatClient}
@@ -285,6 +262,7 @@ export default function StudioPage() {
         />
       )}
 
+      {/* Summary modal */}
       {status.kind === 'summary' && (
         <SummaryCard
           summary={status.data}
@@ -292,6 +270,12 @@ export default function StudioPage() {
           onClose={handleCloseSummary}
         />
       )}
+
+      {/* Background decoration */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 -right-20 w-80 h-80 rounded-full bg-honey-light/15 blur-3xl" />
+        <div className="absolute bottom-10 -left-10 w-64 h-64 rounded-full bg-teal-light/20 blur-3xl" />
+      </div>
     </main>
   );
 }

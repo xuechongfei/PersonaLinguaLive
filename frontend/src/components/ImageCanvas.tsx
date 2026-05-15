@@ -7,23 +7,22 @@ export interface ImageReadyInfo {
   renderedHeight: number;
 }
 
-interface Props {
-  file: File;
-  alt: string;
-  onReady?: (info: ImageReadyInfo) => void;
-}
+interface Props { file: File; alt: string; onReady?: (info: ImageReadyInfo) => void; }
 
 export default function ImageCanvas({ file, alt, onReady }: Props) {
   const [src, setSrc] = useState<string>('');
+  const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
     setSrc(url);
+    setLoaded(false);
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
   function handleLoad(_e: SyntheticEvent<HTMLImageElement>) {
+    setLoaded(true);
     const img = imgRef.current;
     if (!img || !onReady) return;
     onReady({
@@ -35,13 +34,19 @@ export default function ImageCanvas({ file, alt, onReady }: Props) {
   }
 
   if (!src) return null;
+
   return (
-    <img
-      ref={imgRef}
-      src={src}
-      alt={alt}
-      onLoad={handleLoad}
-      className="block max-w-full h-auto rounded-xl shadow"
-    />
+    <div className="relative">
+      {!loaded && (
+        <div className="skeleton w-full h-64 rounded-3xl" />
+      )}
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        onLoad={handleLoad}
+        className={`block max-w-full h-auto rounded-3xl shadow-card transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+      />
+    </div>
   );
 }

@@ -14,10 +14,7 @@ export default function UploadZone({ onFile }: Props) {
     if (!file) return;
     setError(null);
     const r = preCheckFile(file);
-    if (!r.ok) {
-      setError(r.message);
-      return;
-    }
+    if (!r.ok) { setError(r.message); return; }
     onFile(file);
   }
 
@@ -26,42 +23,32 @@ export default function UploadZone({ onFile }: Props) {
     e.target.value = '';
   }
 
-  function onDrop(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setHover(false);
-    accept(e.dataTransfer.files?.[0]);
-  }
-
-  function onDragOver(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setHover(true);
-  }
-
-  function onDragLeave() {
-    setHover(false);
-  }
-
-  const base =
-    'flex flex-col items-center justify-center gap-3 w-full max-w-xl mx-auto rounded-2xl border-2 border-dashed p-10 cursor-pointer transition-colors';
-  const tone = hover ? 'border-sky-500 bg-sky-50' : 'border-slate-300 bg-white hover:bg-slate-50';
+  function onDrop(e: DragEvent<HTMLDivElement>) { e.preventDefault(); setHover(false); accept(e.dataTransfer.files?.[0]); }
+  function onDragOver(e: DragEvent<HTMLDivElement>) { e.preventDefault(); setHover(true); }
+  function onDragLeave() { setHover(false); }
 
   return (
     <div className="w-full">
       <div
         data-testid="upload-zone"
-        className={`${base} ${tone}`}
+        className={`flex flex-col items-center justify-center gap-4 w-full max-w-xl mx-auto
+          rounded-3xl border-2 border-dashed p-12 cursor-pointer transition-all duration-300
+          ${hover
+            ? 'border-honey bg-honey-light/10 scale-[1.02] shadow-glow'
+            : 'border-sand bg-white/60 hover:border-honey/40 hover:bg-white'}`}
         onClick={() => inputRef.current?.click()}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click();
-        }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click(); }}
       >
-        <p className="text-lg font-medium text-slate-800">把图片拖到这里,或点击选择文件</p>
-        <p className="text-sm text-slate-500">支持 JPEG / PNG / WebP,单张 ≤ 8MB</p>
+        <span className="text-4xl">{'\u{1F4F7}'}</span>
+        <div className="text-center">
+          <p className="text-base font-semibold text-ink">Drop your photo here</p>
+          <p className="mt-1 text-sm text-ink-light">or click to browse — JPEG / PNG / WebP, max 8MB</p>
+        </div>
         <input
           ref={inputRef}
           data-testid="upload-input"
@@ -72,9 +59,7 @@ export default function UploadZone({ onFile }: Props) {
         />
       </div>
       {error && (
-        <p role="alert" className="mt-3 text-sm text-rose-600 text-center">
-          {error}
-        </p>
+        <p role="alert" className="mt-3 text-sm text-rose text-center font-medium">{error}</p>
       )}
     </div>
   );

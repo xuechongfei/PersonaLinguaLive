@@ -30,10 +30,10 @@ describe('UploadZone', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/仅支持/);
   });
 
-  it('dragOver 时切换 high-light 样式', () => {
+  it('dragOver 时切换高亮样式', () => {
     render(<UploadZone onFile={() => {}} />);
     const dropTarget = screen.getByTestId('upload-zone');
     fireEvent.dragOver(dropTarget);
-    expect(dropTarget.className).toMatch(/border-sky-500|bg-sky-50/);
+    expect(dropTarget.className).toMatch(/border-honey/);
   });
 });
