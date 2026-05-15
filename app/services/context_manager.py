@@ -20,8 +20,15 @@ class ContextManager:
     ) -> None:
         self._llm = llm
         self._max_exchanges = max_exchanges
-        self._sessions: dict[str, list[dict]] = {}
-        self._summaries: dict[str, str] = {}
+        self._sessions: dict[tuple, list[dict]] = {}
+        self._summaries: dict[tuple, str] = {}
+        self._streaming: set[tuple] = set()
+
+    @staticmethod
+    def _normalize_key(session_id: str | tuple) -> tuple:
+        if isinstance(session_id, tuple):
+            return session_id
+        return (session_id, "")  # old sessions: empty npc_id
 
     # ------------------------------------------------------------------
     # Public API
@@ -29,32 +36,34 @@ class ContextManager:
 
     def add_turn(
         self,
-        session_id: str,
+        session_id: str | tuple,
         user_message: str,
         assistant_content: str,
     ) -> None:
         """Append a user/assistant exchange to the session."""
-        if session_id not in self._sessions:
-            self._sessions[session_id] = []
+        key = self._normalize_key(session_id)
+        if key not in self._sessions:
+            self._sessions[key] = []
 
-        self._sessions[session_id].append(
+        self._sessions[key].append(
             {"role": "user", "content": user_message}
         )
-        self._sessions[session_id].append(
+        self._sessions[key].append(
             {"role": "assistant", "content": assistant_content}
         )
 
-    def get_context(self, session_id: str) -> list[dict]:
+    def get_context(self, session_id: str | tuple) -> list[dict]:
         """Return the conversation context suitable for LLM consumption.
 
         Prepends a summary system message if one exists, then returns the
         last ``max_exchanges * 2`` messages.  Returns an empty list when
         the session does not exist.
         """
-        if session_id not in self._sessions:
+        key = self._normalize_key(session_id)
+        if key not in self._sessions:
             return []
 
-        messages = list(self._sessions[session_id])
+        messages = list(self._sessions[key])
 
         # Sliding-window trim
         max_messages = self._max_exchanges * 2
@@ -62,7 +71,7 @@ class ContextManager:
             messages = messages[-max_messages:]
 
         # Prepend stored summary when available
-        summary = self._summaries.get(session_id)
+        summary = self._summaries.get(key)
         if summary:
             messages = [
                 {"role": "system", "content": f"Previous conversation summary: {summary}"},
@@ -71,7 +80,7 @@ class ContextManager:
 
         return messages
 
-    async def summarize(self, session_id: str) -> str:
+    async def summarize(self, session_id: str | tuple) -> str:
         """Summarise old messages when the session exceeds the window limit.
 
         If the session has more than ``max_exchanges * 2`` messages the
@@ -82,18 +91,19 @@ class ContextManager:
         Returns the existing summary when the window is still within the
         limit, or an empty string when no summary exists yet.
         """
-        if session_id not in self._sessions:
+        key = self._normalize_key(session_id)
+        if key not in self._sessions:
             return ""
 
-        messages = self._sessions[session_id]
+        messages = self._sessions[key]
         max_messages = self._max_exchanges * 2
 
         if len(messages) <= max_messages:
-            return self._summaries.get(session_id, "")
+            return self._summaries.get(key, "")
 
         # Split: oldest messages get summarised, keep the most recent ones
         to_summarize = messages[:-max_messages]
-        self._sessions[session_id] = messages[-max_messages:]
+        self._sessions[key] = messages[-max_messages:]
 
         prompt: list[dict] = [
             {
@@ -113,10 +123,22 @@ class ContextManager:
         ]
 
         summary_text = await self._llm.generate(prompt, temperature=0.3)
-        self._summaries[session_id] = summary_text
+        self._summaries[key] = summary_text
         return summary_text
 
-    def clear_session(self, session_id: str) -> None:
+    def clear_session(self, session_id: str | tuple) -> None:
         """Remove all stored data for a session."""
-        self._sessions.pop(session_id, None)
-        self._summaries.pop(session_id, None)
+        key = self._normalize_key(session_id)
+        self._sessions.pop(key, None)
+        self._summaries.pop(key, None)
+
+    def set_streaming(self, session_id: str | tuple, streaming: bool) -> None:
+        key = self._normalize_key(session_id)
+        if streaming:
+            self._streaming.add(key)
+        else:
+            self._streaming.discard(key)
+
+    def is_streaming(self, session_id: str | tuple) -> bool:
+        key = self._normalize_key(session_id)
+        return key in self._streaming

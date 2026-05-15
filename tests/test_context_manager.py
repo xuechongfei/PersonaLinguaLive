@@ -76,7 +76,7 @@ async def test_summarize_triggers_when_over_limit() -> None:
     assert len(adapter.calls) == 1  # LLM called exactly once
 
     # Only 20 messages should remain in internal storage
-    assert len(cm._sessions["sess1"]) == 20  # type: ignore[attr-defined]
+    assert len(cm._sessions[("sess1", "")]) == 20  # type: ignore[attr-defined]
 
     # get_context returns 20 messages + 1 system summary = 21 entries
     ctx = cm.get_context("sess1")
