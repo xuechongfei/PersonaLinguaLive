@@ -44,7 +44,9 @@ class VisionResult(BaseModel):
     is_safe: bool
     reject_reasons: list[str] = Field(default_factory=list)
     scene_summary: str = ""
+    raw_scene: str = ""
     objects: list[DetectedObject] = Field(default_factory=list)
+    entities: list[Entity] = Field(default_factory=list)
 
 
 class VisionAnalyzeResponse(BaseModel):
@@ -52,4 +54,6 @@ class VisionAnalyzeResponse(BaseModel):
     is_safe: bool
     reject_reasons: list[str] = Field(default_factory=list)
     scene_summary: str = ""
+    raw_scene: str = ""
     objects: list[DetectedObject] = Field(default_factory=list)
+    entities: list[Entity] = Field(default_factory=list)

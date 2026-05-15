@@ -191,3 +191,52 @@ async def test_request_includes_authorization_header_and_image_data_url():
     image_part = next(p for p in user_msg["content"] if p["type"] == "image_url")
     assert image_part["image_url"]["url"].startswith("data:image/")
     assert "base64," in image_part["image_url"]["url"]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_analyze_image_returns_entities_with_kind():
+    from app.adapters.vision.openai_vision import OpenAIVisionAdapter
+
+    payload = {
+        "is_safe": True,
+        "reject_reasons": [],
+        "raw_scene": "A cozy desk with a coffee mug and a person working",
+        "entities": [
+            {"id": "e1", "kind": "object", "label": "coffee mug",
+             "bbox": [0.1, 0.2, 0.3, 0.4], "salience": 0.9, "persona_seed": "morning brew"},
+            {"id": "e2", "kind": "character", "label": "person",
+             "bbox": [0.0, 0.0, 1.0, 1.0], "salience": 0.7},
+        ],
+    }
+    respx.post("https://api.openai.com/v1/chat/completions").mock(
+        return_value=httpx.Response(200, json=_build_response(payload))
+    )
+
+    adapter = OpenAIVisionAdapter(
+        api_key="sk-test", base_url="https://api.openai.com/v1",
+        model="gpt-4o", timeout_s=30.0,
+    )
+    result = await adapter.analyze_image(safe_png_bytes())
+    assert len(result.entities) == 2
+    assert result.entities[0].kind == "object"
+    assert result.entities[1].kind == "character"
+    assert result.raw_scene == "A cozy desk with a coffee mug and a person working"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_analyze_image_fallback_to_empty_entities_on_missing():
+    from app.adapters.vision.openai_vision import OpenAIVisionAdapter
+
+    payload = {"is_safe": True, "reject_reasons": [], "raw_scene": "empty", "entities": []}
+    respx.post("https://api.openai.com/v1/chat/completions").mock(
+        return_value=httpx.Response(200, json=_build_response(payload))
+    )
+    adapter = OpenAIVisionAdapter(
+        api_key="sk-test", base_url="https://api.openai.com/v1",
+        model="gpt-4o", timeout_s=30.0,
+    )
+    result = await adapter.analyze_image(safe_png_bytes())
+    assert result.entities == []
+    assert result.objects == []  # backward compat

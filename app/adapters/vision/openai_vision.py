@@ -10,7 +10,7 @@ import structlog
 from app.adapters.vision.base import VisionIntent
 from app.errors import UpstreamFailureError, UpstreamTimeoutError
 from app.prompts.vision_safety import build_vision_safety_messages
-from app.schemas.vision import BBox, DetectedObject, VisionResult
+from app.schemas.vision import BBox, DetectedObject, Entity, VisionResult
 
 log = structlog.get_logger("pll.adapter.openai_vision")
 
@@ -95,9 +95,41 @@ class OpenAIVisionAdapter:
 def _payload_to_result(payload: dict) -> VisionResult:
     is_safe = bool(payload.get("is_safe", False))
     reasons = list(payload.get("reject_reasons") or [])
-    summary = str(payload.get("scene_summary") or "")
-    raw_objects = payload.get("objects") or []
+    raw_scene = str(payload.get("raw_scene") or payload.get("scene_summary") or "")
 
+    raw_entities = payload.get("entities") or []
+    entities: list[Entity] = []
+    for idx, raw in enumerate(raw_entities, start=1):
+        bbox_arr = raw.get("bbox") or [0, 0, 0, 0]
+        if len(bbox_arr) != 4:
+            continue
+        kind = raw.get("kind", "object")
+        if kind not in ("object", "character"):
+            kind = "object"
+        try:
+            confidence = max(0.0, min(1.0, float(raw.get("confidence") or 0.5)))
+            salience = max(0.0, min(1.0, float(raw.get("salience") or 0.5)))
+            entities.append(
+                Entity(
+                    id=raw.get("id") or f"e{idx}",
+                    kind=kind,
+                    label=str(raw.get("label") or "entity"),
+                    bbox=BBox(
+                        x=max(0.0, min(1.0, float(bbox_arr[0]))),
+                        y=max(0.0, min(1.0, float(bbox_arr[1]))),
+                        w=max(0.0, min(1.0, float(bbox_arr[2]))),
+                        h=max(0.0, min(1.0, float(bbox_arr[3]))),
+                    ),
+                    confidence=confidence,
+                    salience=salience,
+                    seed=raw.get("persona_seed") or raw.get("seed"),
+                )
+            )
+        except (ValueError, TypeError):
+            continue
+
+    # Backward-compat: also parse legacy `objects` payload shape into DetectedObject[]
+    raw_objects = payload.get("objects") or []
     objects: list[DetectedObject] = []
     for idx, raw in enumerate(raw_objects, start=1):
         bbox_arr = raw.get("bbox") or [0, 0, 0, 0]
@@ -105,10 +137,7 @@ def _payload_to_result(payload: dict) -> VisionResult:
             continue
         try:
             confidence_raw = raw.get("confidence")
-            if confidence_raw is None:
-                confidence = 0.5
-            else:
-                confidence = max(0.0, min(1.0, float(confidence_raw)))
+            confidence = 0.5 if confidence_raw is None else max(0.0, min(1.0, float(confidence_raw)))
             objects.append(
                 DetectedObject(
                     id=raw.get("id") or f"o_{idx}",
@@ -129,6 +158,8 @@ def _payload_to_result(payload: dict) -> VisionResult:
     return VisionResult(
         is_safe=is_safe,
         reject_reasons=reasons,
-        scene_summary=summary,
+        scene_summary=raw_scene,  # backward compat
+        raw_scene=raw_scene,
         objects=objects,
+        entities=entities,
     )
