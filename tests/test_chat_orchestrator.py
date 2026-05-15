@@ -74,6 +74,12 @@ class _StubContext:
     def clear_session(self, session_id: str) -> None:
         self.turns = []
 
+    def set_streaming(self, session_id, streaming: bool) -> None:
+        self._streaming = streaming
+
+    def is_streaming(self, session_id) -> bool:
+        return getattr(self, "_streaming", False)
+
 
 # ---------------------------------------------------------------------------
 # Sample realistic XML response
