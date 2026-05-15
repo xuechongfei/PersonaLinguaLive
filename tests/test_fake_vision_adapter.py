@@ -29,13 +29,12 @@ async def test_fake_returns_default_safe_objects_for_real_png():
 
 
 @pytest.mark.asyncio
-async def test_fake_face_trigger_returns_unsafe():
+async def test_fake_face_returns_safe_in_v3():
     from app.adapters.vision.fake import FakeVisionAdapter
 
     result = await FakeVisionAdapter().analyze_image(fake_face_bytes())
-    assert result.is_safe is False
-    assert "face_detected" in result.reject_reasons
-    assert result.objects == []
+    assert result.is_safe is True
+    assert "face_detected" not in result.reject_reasons
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,11 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api import health
 from app.api.deps import RequestIdMiddleware
+from app.adapters.factory import build_imagegen_adapter, build_llm_adapter
 from app.config import Settings
+from app.services.scene_bible import SceneBibleService
+from app.services.world_assets import WorldAssetsService
+from app.services.world_store import WorldStore
 
 
 def create_app() -> FastAPI:
@@ -32,9 +36,21 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
 
+    # Initialize world store and services (attached to app.state)
+    world_store = WorldStore()
+    app.state.world_store = world_store
+    app.state.scene_bible_service = SceneBibleService(
+        llm=build_llm_adapter(settings),
+        world_store=world_store,
+    )
+    app.state.world_assets_service = WorldAssetsService(
+        imagegen=build_imagegen_adapter(settings),
+    )
+
     from app.api import chat as chat_module
     from app.api import persona as persona_module
     from app.api import vision as vision_module
+    from app.api import world as world_module
 
     vision_module.reset_rate_limiter()  # 新 app 实例 = 新限流器
     app.include_router(vision_module.router)
@@ -45,6 +61,8 @@ def create_app() -> FastAPI:
     chat_module.reset_context_manager()  # 新 app 实例 = 新上下文管理器
     chat_module.reset_rate_limiter()  # 新 app 实例 = 新限流器
     app.include_router(chat_module.router)
+
+    app.include_router(world_module.router, prefix="/api")
 
     _mount_spa_if_present(app, settings.frontend_dist_dir)
     return app

@@ -50,12 +50,11 @@ def test_safe_image_response_includes_request_id(client):
     assert resp.headers.get("x-request-id") == "req_test_xyz"
 
 
-def test_face_image_returns_422_unsafe(client):
+def test_face_image_returns_200_safe_in_v3(client):
     resp = client.post("/api/vision/analyze", files=_multipart(fake_face_bytes()))
-    assert resp.status_code == 422
+    assert resp.status_code == 200
     body = resp.json()
-    assert body["code"] == "UNSAFE_IMAGE"
-    assert "face_detected" in body["details"]["reject_reasons"]
+    assert body["is_safe"] is True
 
 
 def test_nsfw_image_returns_422_unsafe(client):
