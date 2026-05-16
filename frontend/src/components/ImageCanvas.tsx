@@ -23,13 +23,20 @@ export default function ImageCanvas({ file, alt, onReady }: Props) {
 
   function handleLoad(_e: SyntheticEvent<HTMLImageElement>) {
     setLoaded(true);
-    const img = imgRef.current;
-    if (!img || !onReady) return;
-    onReady({
-      naturalWidth: img.naturalWidth,
-      naturalHeight: img.naturalHeight,
-      renderedWidth: img.clientWidth,
-      renderedHeight: img.clientHeight,
+    // Defer dimension read to ensure layout is complete (clientWidth can be 0
+    // if onLoad fires before the browser has laid out the element).
+    requestAnimationFrame(() => {
+      const img = imgRef.current;
+      if (!img || !onReady) return;
+      const rect = img.getBoundingClientRect();
+      const rw = rect.width || img.clientWidth || img.naturalWidth;
+      const rh = rect.height || img.clientHeight || img.naturalHeight;
+      onReady({
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+        renderedWidth: Math.round(rw),
+        renderedHeight: Math.round(rh),
+      });
     });
   }
 
