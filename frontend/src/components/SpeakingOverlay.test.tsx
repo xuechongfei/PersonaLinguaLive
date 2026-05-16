@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import SpeakingOverlay from './SpeakingOverlay';
 import { useStudioStore } from '../lib/store';
@@ -26,7 +26,7 @@ describe('SpeakingOverlay', () => {
       id: '1',
       label: 'cup',
       bbox: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 },
-      confidence: 0.9,
+      confidence: 0.9, kind: 'object' as const, salience: 0.8,
     });
 
     const { container } = render(
@@ -40,7 +40,7 @@ describe('SpeakingOverlay', () => {
       id: '1',
       label: 'tiny',
       bbox: { x: 0.1, y: 0.1, w: 0.01, h: 0.01 },
-      confidence: 0.9,
+      confidence: 0.9, kind: 'object' as const, salience: 0.8,
     });
 
     const { container } = render(
@@ -55,7 +55,7 @@ describe('SpeakingOverlay', () => {
       id: '2',
       label: 'mug',
       bbox: { x: 0.2, y: 0.3, w: 0.5, h: 0.4 },
-      confidence: 0.95,
+      confidence: 0.95, kind: 'object' as const, salience: 0.8,
     });
 
     const { container } = render(
@@ -83,7 +83,7 @@ describe('SpeakingOverlay', () => {
       id: '3',
       label: 'vase',
       bbox: { x: 0.3, y: 0.3, w: 0.4, h: 0.4 },
-      confidence: 0.85,
+      confidence: 0.85, kind: 'object' as const, salience: 0.8,
     });
     useStudioStore.getState().setIsSpeaking(true);
 
@@ -100,7 +100,7 @@ describe('SpeakingOverlay', () => {
       id: '4',
       label: 'bowl',
       bbox: { x: 0.1, y: 0.1, w: 0.4, h: 0.4 },
-      confidence: 0.88,
+      confidence: 0.88, kind: 'object' as const, salience: 0.8,
     });
 
     const { container, rerender } = render(
@@ -116,7 +116,7 @@ describe('SpeakingOverlay', () => {
       id: '5',
       label: 'table',
       bbox: { x: 0.2, y: 0.2, w: 0.8, h: 0.6 },
-      confidence: 0.92,
+      confidence: 0.92, kind: 'object' as const, salience: 0.8,
     });
 
     rerender(

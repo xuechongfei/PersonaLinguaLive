@@ -1,10 +1,10 @@
-import type { DetectedObject } from '../lib/api';
+import type { Entity } from '../lib/api';
 
 interface Props {
   renderedWidth: number;
   renderedHeight: number;
-  objects: DetectedObject[];
-  onSelect: (obj: DetectedObject) => void;
+  objects: Entity[];
+  onSelect: (obj: Entity) => void;
 }
 
 export default function HotspotOverlay({

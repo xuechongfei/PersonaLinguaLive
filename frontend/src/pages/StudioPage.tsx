@@ -9,7 +9,7 @@ import LevelSelector, { type UserLevel } from '../components/LevelSelector';
 import SceneGallery from '../components/SceneGallery';
 import SpeakingOverlay from '../components/SpeakingOverlay';
 import { analyzeImage, generatePersona, fetchSummary, ApiError } from '../lib/api';
-import type { DetectedObject } from '../lib/api';
+import type { Entity } from '../lib/api';
 import { ChatClient } from '../lib/chat';
 import { compressIfNeeded } from '../lib/image/compress';
 import { loadProfile, setLevel as persistLevel } from '../lib/profile';
@@ -67,7 +67,7 @@ export default function StudioPage() {
     }
   }
 
-  async function handleSelectObject(obj: DetectedObject) {
+  async function handleSelectObject(obj: Entity) {
     const currentStatus = store.getState().status;
     if (currentStatus.kind === 'persona_loading') return;
 
@@ -82,7 +82,7 @@ export default function StudioPage() {
       const persona = await generatePersona({
         label: obj.label,
         scene_summary: sceneSummary,
-        persona_seed: obj.persona_seed ?? undefined,
+        persona_seed: obj.seed ?? undefined,
         user_level: store.getState().level,
       });
 
@@ -203,7 +203,7 @@ export default function StudioPage() {
               <HotspotOverlay
                 renderedWidth={imageSize.renderedWidth}
                 renderedHeight={imageSize.renderedHeight}
-                objects={analysisResult.objects}
+                objects={analysisResult.entities}
                 onSelect={handleSelectObject}
               />
             )}
@@ -231,7 +231,7 @@ export default function StudioPage() {
 
             {status.kind === 'ready' && analysisResult && (
               <span className="text-sm text-ink-light font-medium">
-                {analysisResult.objects.length} object{analysisResult.objects.length > 1 ? 's' : ''} found — tap one to start
+                {analysisResult.entities.length} object{analysisResult.entities.length > 1 ? 's' : ''} found — tap one to start
               </span>
             )}
 

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { ImageReadyInfo } from '../components/ImageCanvas';
 import type { UserLevel } from '../components/LevelSelector';
 import type { SummaryData } from '../components/SummaryCard';
-import type { VisionAnalyzeResponse, DetectedObject } from './api';
+import type { VisionAnalyzeResponse, Entity } from './api';
 import type { ChatClient } from './chat';
 import type { ConversationData } from './storage';
 
@@ -11,7 +11,7 @@ export type StudioStatus =
   | { kind: 'analyzing' }
   | { kind: 'ready'; result: VisionAnalyzeResponse }
   | { kind: 'error'; message: string }
-  | { kind: 'persona_loading'; object: DetectedObject }
+  | { kind: 'persona_loading'; object: Entity }
   | { kind: 'chatting'; personaName: string; sessionId: string }
   | { kind: 'summary'; data: SummaryData; personaName: string };
 
@@ -20,7 +20,7 @@ interface StudioState {
   imageSize: ImageReadyInfo | null;
   status: StudioStatus;
   analysisResult: VisionAnalyzeResponse | null;
-  selectedObject: DetectedObject | null;
+  selectedObject: Entity | null;
   chatClient: ChatClient | null;
   sessionId: string;
   conversation: ConversationData | null;
@@ -32,7 +32,7 @@ interface StudioState {
   setImageSize: (s: ImageReadyInfo | null) => void;
   setStatus: (s: StudioStatus) => void;
   setAnalysisResult: (r: VisionAnalyzeResponse | null) => void;
-  setSelectedObject: (o: DetectedObject | null) => void;
+  setSelectedObject: (o: Entity | null) => void;
   setChatClient: (c: ChatClient | null) => void;
   setSessionId: (id: string) => void;
   setConversation: (c: ConversationData | null) => void;

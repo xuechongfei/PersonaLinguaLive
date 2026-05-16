@@ -39,7 +39,10 @@ describe('useStudioStore', () => {
       is_safe: true,
       reject_reasons: [],
       scene_summary: 'a kitchen',
-      objects: [{ id: '1', label: 'cup', bbox: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, confidence: 0.9 }],
+      objects: [],
+      entities: [{ id: '1', kind: 'object' as const, label: 'cup', bbox: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, confidence: 0.9, salience: 0.8 }],
+      raw_scene: 'a kitchen',
+      world_id: 'w_test',
     };
     useStudioStore.getState().setStatus({ kind: 'analyzing' });
     expect(useStudioStore.getState().status.kind).toBe('analyzing');
@@ -54,16 +57,19 @@ describe('useStudioStore', () => {
       is_safe: true,
       reject_reasons: [],
       scene_summary: 'a desk',
-      objects: [{ id: '2', label: 'laptop', bbox: { x: 0.5, y: 0.5, w: 0.3, h: 0.3 }, confidence: 0.95 }],
+      objects: [],
+      entities: [{ id: '2', kind: 'object' as const, label: 'laptop', bbox: { x: 0.5, y: 0.5, w: 0.3, h: 0.3 }, confidence: 0.95, salience: 0.7 }],
+      raw_scene: 'a desk',
+      world_id: 'w_test',
     };
     useStudioStore.getState().setAnalysisResult(result);
-    expect(useStudioStore.getState().analysisResult?.objects[0].label).toBe('laptop');
+    expect(useStudioStore.getState().analysisResult?.entities[0].label).toBe('laptop');
     // Status should still be idle
     expect(useStudioStore.getState().status).toEqual({ kind: 'idle' });
   });
 
   it('setSelectedObject stores object reference', () => {
-    const obj = { id: '3', label: 'mug', bbox: { x: 0.2, y: 0.3, w: 0.4, h: 0.4 }, confidence: 0.8 };
+    const obj = { id: '3', kind: 'object' as const, label: 'mug', bbox: { x: 0.2, y: 0.3, w: 0.4, h: 0.4 }, confidence: 0.8, salience: 0.5 };
     useStudioStore.getState().setSelectedObject(obj);
     expect(useStudioStore.getState().selectedObject?.id).toBe('3');
   });
@@ -102,6 +108,9 @@ describe('useStudioStore', () => {
       reject_reasons: [],
       scene_summary: '',
       objects: [],
+      entities: [],
+      raw_scene: '',
+      world_id: '',
     });
 
     useStudioStore.getState().reset();

@@ -69,12 +69,17 @@ const mockAnalyzeResponse = {
   is_safe: true,
   reject_reasons: [],
   scene_summary: 'a cozy kitchen',
-  objects: [
+  raw_scene: 'a cozy kitchen',
+  world_id: 'w_test',
+  objects: [],
+  entities: [
     {
       id: 'obj_1',
+      kind: 'object' as const,
       label: 'teacup',
       bbox: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 },
       confidence: 0.9,
+      salience: 0.8,
     },
   ],
 };

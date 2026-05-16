@@ -30,12 +30,25 @@ export interface DetectedObject {
   persona_seed?: string | null;
 }
 
+export interface Entity {
+  id: string;
+  kind: 'object' | 'character';
+  label: string;
+  bbox: BBox;
+  confidence: number;
+  salience: number;
+  seed?: string | null;
+}
+
 export interface VisionAnalyzeResponse {
   request_id: string;
   is_safe: boolean;
   reject_reasons: string[];
   scene_summary: string;
+  raw_scene: string;
   objects: DetectedObject[];
+  entities: Entity[];
+  world_id: string;
 }
 
 export type ApiErrorCode =

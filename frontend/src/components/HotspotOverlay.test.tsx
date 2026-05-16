@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import HotspotOverlay from './HotspotOverlay';
-import type { DetectedObject } from '../lib/api';
+import type { Entity } from '../lib/api';
 
-const objects: DetectedObject[] = [
-  { id: 'obj_1', label: 'cup', bbox: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, confidence: 0.9 },
-  { id: 'obj_2', label: 'lamp', bbox: { x: 0.5, y: 0.5, w: 0.1, h: 0.1 }, confidence: 0.8 },
+const objects: Entity[] = [
+  { id: 'obj_1', kind: 'object', label: 'cup', bbox: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, confidence: 0.9, salience: 0.8 },
+  { id: 'obj_2', kind: 'object', label: 'lamp', bbox: { x: 0.5, y: 0.5, w: 0.1, h: 0.1 }, confidence: 0.8, salience: 0.5 },
 ];
 
 describe('HotspotOverlay', () => {
