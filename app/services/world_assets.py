@@ -23,15 +23,13 @@ class WorldAssetsService:
         bible: SceneBible,
         source_image_bytes: bytes,
     ) -> WorldAssets:
-        bg_task = self._generate_background(bible, source_image_bytes)
-        sprite_tasks = [
-            self._generate_npc_sprites(bible, npc) for npc in bible.npcs
-        ]
+        # Sequential to avoid rate limits on free-tier imagegen APIs
+        bg_base64 = await self._generate_background(bible, source_image_bytes)
 
-        # Run background and all NPC sprites in parallel
-        bg_base64, *sprite_results = await asyncio.gather(
-            bg_task, *sprite_tasks
-        )
+        sprite_results = []
+        for npc in bible.npcs:
+            sprite_results.append(await self._generate_npc_sprites(bible, npc))
+            await asyncio.sleep(0.5)  # small gap between NPCs
 
         return WorldAssets(
             background_base64=bg_base64,

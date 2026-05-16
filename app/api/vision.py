@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
@@ -89,8 +90,8 @@ async def analyze_image(
         log.info("vision.unsafe", reasons=result.reject_reasons)
         raise UnsafeImageError(reasons=result.reject_reasons)
 
-    request_id = request.headers.get("x-request-id", "req_unknown")
-    log.info("vision.ok", entities=len(result.entities), request_id=request_id)
+    request_id = request.headers.get("x-request-id") or f"req_{uuid.uuid4().hex}"
+    log.info("vision.ok", entities=len(result.entities))
 
     # Generate SceneBible and spawn world asset generation
     world_id = ""
@@ -113,7 +114,7 @@ async def analyze_image(
                 )
             )
         except Exception:
-            log.warning("vision.scene_bible_failed", request_id=request_id)
+            log.warning("vision.scene_bible_failed")
             world_id = ""
 
     return VisionAnalyzeResponse(

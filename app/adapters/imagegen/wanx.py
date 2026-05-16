@@ -50,45 +50,56 @@ class WanxImageGenAdapter(ImageGenAdapter):
             "X-DashScope-Async": "enable",
         }
 
-        # 1. Submit async task
-        try:
-            async with httpx.AsyncClient(timeout=self._timeout_s) as client:
-                resp = await client.post(url, json=body, headers=headers)
-        except httpx.TimeoutException as exc:
-            log.warning("wanx.imagegen.timeout", error=str(exc))
-            raise UpstreamTimeoutError(provider="wanx") from exc
-        except httpx.HTTPError as exc:
-            log.warning("wanx.imagegen.http_error", error=str(exc))
-            raise UpstreamFailureError(provider="wanx", message=str(exc)) from exc
+        # Submit with retry for rate limits (free tier: 1-2 QPS)
+        for attempt in range(4):
+            try:
+                async with httpx.AsyncClient(timeout=self._timeout_s) as client:
+                    resp = await client.post(url, json=body, headers=headers)
+            except httpx.TimeoutException as exc:
+                log.warning("wanx.imagegen.timeout", error=str(exc))
+                raise UpstreamTimeoutError(provider="wanx") from exc
+            except httpx.HTTPError as exc:
+                log.warning("wanx.imagegen.http_error", error=str(exc))
+                raise UpstreamFailureError(provider="wanx", message=str(exc)) from exc
 
-        if resp.status_code >= 400:
-            log.warning("wanx.imagegen.http_status", status=resp.status_code,
-                        body=resp.text[:500])
-            raise UpstreamFailureError(
-                provider="wanx", message=f"wanx returned {resp.status_code}"
-            )
+            if resp.status_code == 429:
+                delay = 2 ** attempt  # 1s, 2s, 4s, 8s
+                log.info("wanx.imagegen.rate_limited", attempt=attempt + 1, retry_in=delay)
+                await asyncio.sleep(delay)
+                continue
 
-        data = resp.json()
-        output = data.get("output", {})
-        task_status = output.get("task_status", "")
-        task_id = output.get("task_id", "")
+            if resp.status_code >= 400:
+                log.warning("wanx.imagegen.http_status", status=resp.status_code,
+                            body=resp.text[:500])
+                raise UpstreamFailureError(
+                    provider="wanx", message=f"wanx returned {resp.status_code}"
+                )
 
-        # 2. Handle sync success (if account supports it)
-        if task_status == "SUCCEEDED":
+            data = resp.json()
+            output = data.get("output", {})
+            task_status = output.get("task_status", "")
+            task_id = output.get("task_id", "")
+
+            # Handle sync success (if account supports it)
+            if task_status == "SUCCEEDED":
+                return await self._extract_result(output)
+
+            # Async: poll until complete
+            if task_status in ("PENDING", "RUNNING") and task_id:
+                log.info("wanx.imagegen.async_task", task_id=task_id)
+                data = await self._poll_task(task_id)
+                output = data.get("output", {})
+            else:
+                raise UpstreamFailureError(
+                    provider="wanx",
+                    message=f"unexpected task status: {task_status}",
+                )
+
             return await self._extract_result(output)
 
-        # 3. Async: poll until complete
-        if task_status in ("PENDING", "RUNNING") and task_id:
-            log.info("wanx.imagegen.async_task", task_id=task_id)
-            data = await self._poll_task(task_id)
-            output = data.get("output", {})
-        else:
-            raise UpstreamFailureError(
-                provider="wanx",
-                message=f"unexpected task status: {task_status}",
-            )
-
-        return await self._extract_result(output)
+        raise UpstreamFailureError(
+            provider="wanx", message="rate limit exceeded after 4 retries"
+        )
 
     async def _extract_result(self, output: dict) -> ImageGenResult:
         task_status = output.get("task_status", "FAILED")
