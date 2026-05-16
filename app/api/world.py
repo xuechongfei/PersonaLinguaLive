@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 
+import structlog
 from fastapi import APIRouter, Request
 from starlette.responses import JSONResponse, StreamingResponse
 from starlette.status import HTTP_404_NOT_FOUND
@@ -12,6 +13,7 @@ from app.errors import WorldNotFoundError
 from app.schemas.world import WorldAssets
 from app.services.world_store import WorldStore
 
+log = structlog.get_logger("pll.world")
 router = APIRouter(prefix="/world", tags=["world"])
 
 
@@ -48,6 +50,7 @@ async def get_world_stream(world_id: str, request: Request):
         for _ in range(600):  # 600 * 0.5s = 300s max wait (5 min for slow imagegen)
             state = store.get_state(world_id)
             if state == "world_ready":
+                log.info("world.sse.ready", world_id=world_id)
                 bible = store.get(world_id)
                 if bible:
                     yield f"event: scene_bible_ready\ndata: {bible.model_dump_json()}\n\n"

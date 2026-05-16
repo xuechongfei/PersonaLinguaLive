@@ -3,13 +3,13 @@ const BASE_URL = import.meta.env.VITE_API_BASE ?? '';
 export interface WorldSprite {
   entity_id: string;
   sprites: {
-    default: string;   // base64 png
+    default: string;
     blink: string;
     mouth_a: string;
     mouth_b: string;
     mouth_c: string;
   };
-  position_x: number;  // 0-1 normalized
+  position_x: number;
   position_y: number;
 }
 
@@ -40,15 +40,17 @@ export class WorldClient {
   }
 
   private _emit(event: WorldEvent) {
+    console.log('[WorldClient] event:', event.type, event);
     for (const cb of this._listeners) cb(event);
   }
 
   async connect() {
     this._abort = new AbortController();
+    const url = `${BASE_URL}/api/world/${this._worldId}`;
+    console.log('[WorldClient] connecting to', url);
     try {
-      const resp = await fetch(`${BASE_URL}/api/world/${this._worldId}`, {
-        signal: this._abort.signal,
-      });
+      const resp = await fetch(url, { signal: this._abort.signal });
+      console.log('[WorldClient] response status:', resp.status);
       if (!resp.ok || !resp.body) {
         this._emit({ type: 'error', message: `World fetch failed: ${resp.status}` });
         return;
@@ -59,51 +61,53 @@ export class WorldClient {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        if (done) {
+          console.log('[WorldClient] stream done');
+          break;
+        }
+        const chunk = decoder.decode(value, { stream: true });
+        console.log('[WorldClient] raw chunk:', chunk.substring(0, 200));
+        buffer += chunk;
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
         let eventType = '';
-        let data = '';
         for (const line of lines) {
           if (line.startsWith('event: ')) {
             eventType = line.slice(7).trim();
           } else if (line.startsWith('data: ')) {
-            data = line.slice(6);
-            this._handleEvent(eventType, data);
+            const data = line.slice(6);
+            console.log('[WorldClient] event:', eventType, data.substring(0, 100));
+            try {
+              const parsed = JSON.parse(data);
+              switch (eventType) {
+                case 'scene_bible_ready':
+                  this._emit({ type: 'scene_bible_ready', bible: parsed });
+                  break;
+                case 'background_ready':
+                  this._emit({ type: 'background_ready', imageBase64: parsed.image_base64 || '' });
+                  break;
+                case 'npc_sprite_ready':
+                  this._emit({ type: 'npc_sprite_ready', sprite: parsed as WorldSprite });
+                  break;
+                case 'world_ready':
+                  this._emit({ type: 'world_ready' });
+                  break;
+                case 'error':
+                  this._emit({ type: 'error', message: parsed.message || 'unknown' });
+                  break;
+              }
+            } catch {
+              console.log('[WorldClient] skip non-JSON event');
+            }
           }
         }
       }
     } catch (e: any) {
       if (e.name !== 'AbortError') {
-        this._emit({ type: 'error', message: e.message || 'SSE connection failed' });
+        console.error('[WorldClient] error:', e.message);
+        this._emit({ type: 'error', message: e.message || 'SSE failed' });
       }
-    }
-  }
-
-  private _handleEvent(type: string, raw: string) {
-    try {
-      const data = JSON.parse(raw);
-      switch (type) {
-        case 'scene_bible_ready':
-          this._emit({ type: 'scene_bible_ready', bible: data });
-          break;
-        case 'background_ready':
-          this._emit({ type: 'background_ready', imageBase64: data.image_base64 || '' });
-          break;
-        case 'npc_sprite_ready':
-          this._emit({ type: 'npc_sprite_ready', sprite: data as WorldSprite });
-          break;
-        case 'world_ready':
-          this._emit({ type: 'world_ready' });
-          break;
-        case 'error':
-          this._emit({ type: 'error', message: data.message || 'unknown' });
-          break;
-      }
-    } catch {
-      // non-JSON event, skip
     }
   }
 
