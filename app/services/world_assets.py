@@ -59,18 +59,12 @@ class WorldAssetsService:
         default_b64 = base64.b64encode(default_result.image_bytes).decode()
 
         blink_b64 = await self._gen_frame(npc, bible, "blink", default_result.image_bytes)
-        mouth_a_b64 = await self._gen_frame(npc, bible, "mouth_a", default_result.image_bytes)
-        mouth_b_b64 = await self._gen_frame(npc, bible, "mouth_b", default_result.image_bytes)
-        mouth_c_b64 = await self._gen_frame(npc, bible, "mouth_c", default_result.image_bytes)
 
         return NPCSprites(
             entity_id=npc.entity_id,
             sprites=SpriteSet(
                 default=default_b64,
                 blink=blink_b64,
-                mouth_a=mouth_a_b64,
-                mouth_b=mouth_b_b64,
-                mouth_c=mouth_c_b64,
             ),
         )
 

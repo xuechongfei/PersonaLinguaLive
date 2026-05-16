@@ -45,7 +45,7 @@ async def get_world_stream(world_id: str, request: Request):
                 return
 
         # If not ready yet, poll until ready or timeout
-        for _ in range(120):  # 120 * 0.5s = 60s max wait
+        for _ in range(600):  # 600 * 0.5s = 300s max wait (5 min for slow imagegen)
             state = store.get_state(world_id)
             if state == "world_ready":
                 bible = store.get(world_id)
