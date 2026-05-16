@@ -5,6 +5,7 @@ import type { SummaryData } from '../components/SummaryCard';
 import type { VisionAnalyzeResponse, Entity } from './api';
 import type { ChatClient } from './chat';
 import type { ConversationData } from './storage';
+import type { WorldSprite } from './world';
 
 export type StudioStatus =
   | { kind: 'idle' }
@@ -27,6 +28,9 @@ interface StudioState {
   level: UserLevel;
   analyserNode: AnalyserNode | undefined;
   isSpeaking: boolean;
+  worldBackground: string | null;
+  worldSprites: WorldSprite[];
+  worldReady: boolean;
 
   setFile: (f: File | null) => void;
   setImageSize: (s: ImageReadyInfo | null) => void;
@@ -39,6 +43,9 @@ interface StudioState {
   setLevel: (l: UserLevel) => void;
   setAnalyserNode: (n: AnalyserNode | undefined) => void;
   setIsSpeaking: (v: boolean) => void;
+  setWorldBackground: (b: string | null) => void;
+  addWorldSprite: (s: WorldSprite) => void;
+  setWorldReady: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -54,6 +61,9 @@ export const useStudioStore = create<StudioState>((set) => ({
   level: 'beginner',
   analyserNode: undefined,
   isSpeaking: false,
+  worldBackground: null,
+  worldSprites: [],
+  worldReady: false,
 
   setFile: (f) => set({ file: f }),
   setImageSize: (s) => set({ imageSize: s }),
@@ -66,6 +76,9 @@ export const useStudioStore = create<StudioState>((set) => ({
   setLevel: (l) => set({ level: l }),
   setAnalyserNode: (n) => set({ analyserNode: n }),
   setIsSpeaking: (v) => set({ isSpeaking: v }),
+  setWorldBackground: (b) => set({ worldBackground: b }),
+  addWorldSprite: (s) => set((st) => ({ worldSprites: [...st.worldSprites, s] })),
+  setWorldReady: (v) => set({ worldReady: v }),
 
   reset: () => {
     const state = useStudioStore.getState();
@@ -82,6 +95,9 @@ export const useStudioStore = create<StudioState>((set) => ({
       level: 'beginner',
       analyserNode: undefined,
       isSpeaking: false,
+      worldBackground: null,
+      worldSprites: [],
+      worldReady: false,
     });
   },
 }));

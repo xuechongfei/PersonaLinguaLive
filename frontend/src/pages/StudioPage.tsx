@@ -11,6 +11,7 @@ import SpeakingOverlay from '../components/SpeakingOverlay';
 import { analyzeImage, fetchSummary, ApiError } from '../lib/api';
 import type { Entity } from '../lib/api';
 import { ChatClient } from '../lib/chat';
+import { WorldClient } from '../lib/world';
 import { compressIfNeeded } from '../lib/image/compress';
 import { loadProfile, setLevel as persistLevel } from '../lib/profile';
 import { collectLearnerContext } from '../lib/learnerContext';
@@ -29,6 +30,8 @@ export default function StudioPage() {
   const analysisResult = useStudioStore((s) => s.analysisResult);
   const selectedObject = useStudioStore((s) => s.selectedObject);
   const chatClient = useStudioStore((s) => s.chatClient);
+  const worldBackground = useStudioStore((s) => s.worldBackground);
+  const worldSprites = useStudioStore((s) => s.worldSprites);
 
   const store = useStudioStore;
 
@@ -61,6 +64,21 @@ export default function StudioPage() {
       const result = await analyzeImage(slim);
       store.getState().setAnalysisResult(result);
       store.getState().setStatus({ kind: 'ready', result });
+
+      // Start fetching world assets (cartoon background + NPC sprites)
+      if (result.world_id) {
+        const wc = new WorldClient(result.world_id);
+        wc.on((ev) => {
+          if (ev.type === 'background_ready') {
+            store.getState().setWorldBackground(ev.imageBase64);
+          } else if (ev.type === 'npc_sprite_ready') {
+            store.getState().addWorldSprite(ev.sprite);
+          } else if (ev.type === 'world_ready') {
+            store.getState().setWorldReady(true);
+          }
+        });
+        wc.connect(); // fire-and-forget, runs in background
+      }
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'Something went wrong. Please try again.';
       store.getState().setStatus({ kind: 'error', message: msg });
@@ -206,7 +224,25 @@ export default function StudioPage() {
       {file && (
         <section className="mx-auto w-full max-w-3xl animate-pop-in">
           <div className="relative inline-block rounded-3xl overflow-hidden shadow-card">
-            <ImageCanvas file={file} alt="Selected" onReady={handleImageReady} />
+            {/* Show cartoon world when background is ready, otherwise original photo */}
+            {worldBackground ? (
+              <img
+                src={`data:image/png;base64,${worldBackground}`}
+                alt="Cartoon scene"
+                className="block max-w-full h-auto rounded-3xl"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  store.getState().setImageSize({
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight,
+                    renderedWidth: img.clientWidth || img.naturalWidth,
+                    renderedHeight: img.clientHeight || img.naturalHeight,
+                  });
+                }}
+              />
+            ) : (
+              <ImageCanvas file={file} alt="Selected" onReady={handleImageReady} />
+            )}
 
             {(status.kind === 'ready' || status.kind === 'chatting') && imageSize && analysisResult && (
               <HotspotOverlay
@@ -215,6 +251,32 @@ export default function StudioPage() {
                 objects={analysisResult.entities}
                 onSelect={handleSelectObject}
               />
+            )}
+
+            {/* NPC sprites overlay */}
+            {worldSprites.length > 0 && imageSize && (
+              <svg
+                className="absolute inset-0 pointer-events-none"
+                width={imageSize.renderedWidth}
+                height={imageSize.renderedHeight}
+                viewBox={`0 0 ${imageSize.renderedWidth} ${imageSize.renderedHeight}`}
+              >
+                {worldSprites.map((s) => {
+                  const sx = s.position_x * imageSize.renderedWidth;
+                  const sy = s.position_y * imageSize.renderedHeight;
+                  const size = Math.min(imageSize.renderedWidth, imageSize.renderedHeight) * 0.15;
+                  return (
+                    <image
+                      key={s.entity_id}
+                      href={`data:image/png;base64,${s.sprites.default}`}
+                      x={sx - size / 2}
+                      y={sy - size / 2}
+                      width={size}
+                      height={size}
+                    />
+                  );
+                })}
+              </svg>
             )}
 
             {status.kind === 'chatting' && imageSize && selectedObject && (
