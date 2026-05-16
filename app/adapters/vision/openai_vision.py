@@ -1,6 +1,7 @@
 """OpenAI Chat Completions adapter for vision (safety + objects)."""
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 
@@ -66,35 +67,48 @@ class OpenAIVisionAdapter:
 
         log.info("openai.vision.call", model=self._model, image_bytes=len(image_bytes))
 
-        try:
-            async with httpx.AsyncClient(timeout=self._timeout_s) as client:
-                resp = await client.post(url, json=body, headers=headers)
-        except httpx.TimeoutException as exc:
-            log.warning("openai.vision.timeout", error=str(exc))
-            raise UpstreamTimeoutError(provider="openai") from exc
-        except httpx.HTTPError as exc:
-            log.warning("openai.vision.http_error", error=str(exc))
-            raise UpstreamFailureError(provider="openai", message=str(exc)) from exc
+        for attempt in range(4):
+            try:
+                async with httpx.AsyncClient(timeout=self._timeout_s) as client:
+                    resp = await client.post(url, json=body, headers=headers)
+            except httpx.TimeoutException as exc:
+                log.warning("openai.vision.timeout", error=str(exc))
+                raise UpstreamTimeoutError(provider="openai") from exc
+            except httpx.HTTPError as exc:
+                log.warning("openai.vision.http_error", error=str(exc))
+                raise UpstreamFailureError(provider="openai", message=str(exc)) from exc
 
-        if resp.status_code >= 400:
-            log.warning("openai.vision.http_status", status=resp.status_code, body=resp.text[:500])
-            raise UpstreamFailureError(
-                provider="openai",
-                message=f"openai returned {resp.status_code}",
-            )
+            if resp.status_code == 429:
+                delay = 2 ** attempt  # 1s, 2s, 4s, 8s
+                log.info("openai.vision.rate_limited", attempt=attempt + 1, retry_in=delay)
+                await asyncio.sleep(delay)
+                continue
 
-        try:
-            envelope = resp.json()
-            content_str = envelope["choices"][0]["message"]["content"]
-            payload = json.loads(content_str)
-        except (KeyError, IndexError, ValueError) as exc:
-            log.warning("openai.vision.parse_error", error=str(exc))
-            raise UpstreamFailureError(provider="openai", message="invalid JSON from upstream") from exc
+            if resp.status_code >= 400:
+                log.warning("openai.vision.http_status", status=resp.status_code,
+                            body=resp.text[:500])
+                raise UpstreamFailureError(
+                    provider="openai",
+                    message=f"openai returned {resp.status_code}",
+                )
 
-        result = _payload_to_result(payload)
-        log.info("openai.vision.ok", is_safe=result.is_safe, entities=len(result.entities),
-                 raw_scene=result.raw_scene[:80] if result.raw_scene else "")
-        return result
+            try:
+                envelope = resp.json()
+                content_str = envelope["choices"][0]["message"]["content"]
+                payload = json.loads(content_str)
+            except (KeyError, IndexError, ValueError) as exc:
+                log.warning("openai.vision.parse_error", error=str(exc))
+                raise UpstreamFailureError(provider="openai",
+                                           message="invalid JSON from upstream") from exc
+
+            result = _payload_to_result(payload)
+            log.info("openai.vision.ok", is_safe=result.is_safe, entities=len(result.entities),
+                     raw_scene=result.raw_scene[:80] if result.raw_scene else "")
+            return result
+
+        raise UpstreamFailureError(
+            provider="openai", message="rate limited after 4 retries"
+        )
 
 
 def _payload_to_result(payload: dict) -> VisionResult:
