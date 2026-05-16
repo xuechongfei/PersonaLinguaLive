@@ -73,7 +73,9 @@ export class WorldClient {
 
         let eventType = '';
         for (const line of lines) {
-          if (line.startsWith('event: ')) {
+          if (line.startsWith(':') || line === '') {
+            // SSE comment or blank line — skip
+          } else if (line.startsWith('event: ')) {
             eventType = line.slice(7).trim();
           } else if (line.startsWith('data: ')) {
             const data = line.slice(6);

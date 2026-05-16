@@ -47,7 +47,7 @@ async def get_world_stream(world_id: str, request: Request):
                 return
 
         # If not ready yet, poll until ready or timeout
-        for _ in range(600):  # 600 * 0.5s = 300s max wait (5 min for slow imagegen)
+        for tick in range(600):  # 600 * 0.5s = 300s max wait
             state = store.get_state(world_id)
             if state == "world_ready":
                 log.info("world.sse.ready", world_id=world_id)
@@ -63,6 +63,11 @@ async def get_world_stream(world_id: str, request: Request):
             elif state == "error":
                 yield 'event: error\ndata: {"message":"generation failed"}\n\n'
                 return
+
+            # Heartbeat every 15s to keep proxy/connection alive
+            if tick % 30 == 0:
+                yield ": heartbeat\n\n"
+
             await asyncio.sleep(0.5)
         yield 'event: error\ndata: {"message":"timeout waiting for world assets"}\n\n'
 
