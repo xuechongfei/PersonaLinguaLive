@@ -5,7 +5,6 @@ import StudioPage from './StudioPage';
 // Mock API
 vi.mock('../lib/api', () => ({
   analyzeImage: vi.fn(),
-  generatePersona: vi.fn(),
   fetchSummary: vi.fn(),
   ApiError: class ApiError extends Error {
     code: string;
@@ -61,7 +60,7 @@ vi.mock('../lib/image/compress', () => ({
   compressIfNeeded: async (f: File) => f,
 }));
 
-import { analyzeImage, generatePersona, fetchSummary } from '../lib/api';
+import { analyzeImage, fetchSummary } from '../lib/api';
 import { useStudioStore } from '../lib/store';
 
 const mockAnalyzeResponse = {
@@ -84,15 +83,6 @@ const mockAnalyzeResponse = {
   ],
 };
 
-const mockPersonaResponse = {
-  persona_id: 'p1',
-  persona_name: 'Tilly the Teacup',
-  description: 'A cheerful teacup',
-  system_prompt: 'You are a cheerful teacup.',
-  vocab_focus: ['teacup', 'tea'],
-  voice_id: 'English_sweet_female',
-};
-
 const mockSummaryResponse = {
   new_words: [{ word: 'teacup', definition: 'small cup', example: 'A teacup.' }],
   grammar_points: ['Greetings'],
@@ -110,7 +100,6 @@ describe('StudioPage', () => {
     Element.prototype.scrollIntoView = vi.fn();
 
     (analyzeImage as any).mockResolvedValue(mockAnalyzeResponse);
-    (generatePersona as any).mockResolvedValue(mockPersonaResponse);
     (fetchSummary as any).mockResolvedValue(mockSummaryResponse);
   });
 
@@ -140,23 +129,20 @@ describe('StudioPage', () => {
     expect(hotspot).toBeInTheDocument();
   });
 
-  it('clicking hotspot generates persona and opens chat', async () => {
+  it('clicking hotspot opens chat directly from entity data', async () => {
     setupImageUpload();
     await waitForImageLoad();
 
     const hotspot = await screen.findByRole('button', { name: /teacup/i });
     fireEvent.click(hotspot);
 
-    // Should show persona loading indicator
-    expect(screen.getByText(/Creating persona/)).toBeInTheDocument();
-
-    // After persona generated, chat panel appears
+    // Chat panel should appear (no persona API call needed)
     await waitFor(() => {
       expect(screen.getByRole('dialog', { name: /chat/i })).toBeInTheDocument();
     });
 
-    // Chat panel shows persona name
-    expect(screen.getByText('Tilly the Teacup')).toBeInTheDocument();
+    // Chat panel shows entity-derived persona name
+    expect(screen.getByText('teacup (object)')).toBeInTheDocument();
   });
 
   it('clicking End Chat triggers summary', async () => {
@@ -183,17 +169,16 @@ describe('StudioPage', () => {
     expect(fetchSummary).toHaveBeenCalled();
   });
 
-  it('shows error when persona generation fails', async () => {
-    (generatePersona as any).mockRejectedValue(new Error('API error'));
-
+  it('opens chat immediately when hotspot clicked', async () => {
     setupImageUpload();
     await waitForImageLoad();
 
     const hotspot = await screen.findByRole('button', { name: /teacup/i });
     fireEvent.click(hotspot);
 
+    // Persona is built from entity data — chat opens immediately
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /chat/i })).toBeInTheDocument();
     });
   });
 

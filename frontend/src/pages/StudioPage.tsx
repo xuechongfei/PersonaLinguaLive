@@ -8,7 +8,7 @@ import type { SummaryData } from '../components/SummaryCard';
 import LevelSelector, { type UserLevel } from '../components/LevelSelector';
 import SceneGallery from '../components/SceneGallery';
 import SpeakingOverlay from '../components/SpeakingOverlay';
-import { analyzeImage, generatePersona, fetchSummary, ApiError } from '../lib/api';
+import { analyzeImage, fetchSummary, ApiError } from '../lib/api';
 import type { Entity } from '../lib/api';
 import { ChatClient } from '../lib/chat';
 import { compressIfNeeded } from '../lib/image/compress';
@@ -79,19 +79,28 @@ export default function StudioPage() {
     try {
       const result = store.getState().analysisResult;
       const sceneSummary = result?.scene_summary ?? '';
-      const persona = await generatePersona({
-        label: obj.label,
-        scene_summary: sceneSummary,
-        persona_seed: obj.seed ?? undefined,
-        user_level: store.getState().level,
-      });
+
+      // v0.3: persona is now built from entity data — no separate API call
+      const personaName = `${obj.label} (${obj.kind})`;
+      const personality = obj.seed || `a ${obj.label} in this scene`;
+      const systemPrompt = [
+        `You are ${personaName}. ${personality}.`,
+        `Scene: ${sceneSummary}`,
+        `You are a friendly English tutor. Talk naturally about yourself and your surroundings.`,
+        `User level: ${store.getState().level}.`,
+        '',
+        'Format EVERY response with XML:',
+        '<speak>spoken text</speak>',
+        '<learning>learning tips</learning>',
+        '<followup>follow-up question</followup>',
+      ].join('\n');
 
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const now = Date.now();
       const conv: ConversationData = {
         sessionId,
-        personaId: persona.persona_id,
-        personaName: persona.persona_name,
+        personaId: obj.id,
+        personaName,
         turns: [],
         createdAt: now,
         updatedAt: now,
@@ -106,18 +115,18 @@ export default function StudioPage() {
 
       client.connect(
         sessionId,
-        { role: 'system', content: persona.system_prompt },
+        { role: 'system', content: systemPrompt },
         store.getState().level,
         learnerContext,
-        persona.voice_id,
+        undefined,  // voice_id — LLM will assign based on voice_traits
       );
 
       store.getState().setSessionId(sessionId);
       store.getState().setConversation(conv);
       store.getState().setChatClient(client);
-      store.getState().setStatus({ kind: 'chatting', personaName: persona.persona_name, sessionId });
+      store.getState().setStatus({ kind: 'chatting', personaName, sessionId });
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : 'Failed to create persona.';
+      const msg = e instanceof ApiError ? e.message : 'Failed to start chat.';
       store.getState().setStatus({ kind: 'error', message: msg });
     }
   }
