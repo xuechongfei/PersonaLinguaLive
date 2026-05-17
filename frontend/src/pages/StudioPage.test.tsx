@@ -227,4 +227,39 @@ describe('StudioPage', () => {
     // Now assert no hotspot button exists for obj_1 (no matching sprite).
     expect(screen.queryByRole('button', { name: /teacup/i })).not.toBeInTheDocument();
   });
+
+  it('warns when chatting starts but no sprite matches entity', async () => {
+    // Override beforeEach: install a sprite for a different entity, so obj_1 has no match.
+    useStudioStore.getState().reset();
+    useStudioStore.getState().setWorldReady(true);
+    useStudioStore.getState().addWorldSprite({
+      entity_id: 'obj_OTHER',
+      sprites: { default: 'X', blink: '', mouth_a: '', mouth_b: '', mouth_c: '' },
+      position_x: 0,
+      position_y: 0,
+    });
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    setupImageUpload();
+    await waitForImageLoad();
+
+    // No hotspot for obj_1 (Task 2 filter hides it), so we directly drive the store
+    // into the chatting state to simulate a stale entity_id condition.
+    useStudioStore.getState().setStatus({
+      kind: 'chatting',
+      personaName: 'teacup (object)',
+      sessionId: 's',
+      entityId: 'obj_1',
+    });
+
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('chattingSprite'),
+        expect.objectContaining({ entityId: 'obj_1' })
+      );
+    });
+
+    warnSpy.mockRestore();
+  });
 });

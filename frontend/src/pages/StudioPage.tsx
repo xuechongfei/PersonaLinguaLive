@@ -49,6 +49,15 @@ export default function StudioPage() {
     loadProfile().then((p) => store.getState().setLevel(p.level)).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (status.kind === 'chatting' && !chattingSprite) {
+      console.warn('chattingSprite missing for entity', {
+        entityId: status.entityId,
+        availableSpriteIds: worldSprites.map((s) => s.entity_id),
+      });
+    }
+  }, [status, chattingSprite, worldSprites]);
+
   async function handleLevelChange(next: UserLevel) {
     store.getState().setLevel(next);
     try { await persistLevel(next); } catch { /* non-fatal */ }
