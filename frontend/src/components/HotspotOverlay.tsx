@@ -5,6 +5,7 @@ interface Props {
   renderedHeight: number;
   objects: Entity[];
   onSelect: (obj: Entity) => void;
+  disabled?: boolean;
 }
 
 export default function HotspotOverlay({
@@ -12,6 +13,7 @@ export default function HotspotOverlay({
   renderedHeight,
   objects,
   onSelect,
+  disabled = false,
 }: Props) {
   if (renderedWidth <= 0 || renderedHeight <= 0) return null;
 
@@ -44,35 +46,39 @@ export default function HotspotOverlay({
         const labelY = labelInside ? y + 6 : Math.max(y - 26, 2);
 
         return (
-          <g key={obj.id} className="pointer-events-auto">
-            {/* Glow ring — visible when hovering */}
-            <rect
-              x={x - 4}
-              y={y - 4}
-              width={w + 8}
-              height={h + 8}
-              fill="none"
-              stroke="url(#glowGradient)"
-              strokeWidth={3}
-              rx={12}
-              className="opacity-0 hover:opacity-100 transition-opacity duration-300"
-              style={{ filter: 'url(#blurFilter)' }}
-            />
-            {/* Solid border — always visible */}
+          <g key={obj.id} className={disabled ? '' : 'pointer-events-auto'}>
+            {/* Glow ring — visible when hovering (hidden when disabled) */}
+            {!disabled && (
+              <rect
+                x={x - 4}
+                y={y - 4}
+                width={w + 8}
+                height={h + 8}
+                fill="none"
+                stroke="url(#glowGradient)"
+                strokeWidth={3}
+                rx={12}
+                className="opacity-0 hover:opacity-100 transition-opacity duration-300"
+                style={{ filter: 'url(#blurFilter)' }}
+              />
+            )}
+            {/* Solid border */}
             <rect
               x={x}
               y={y}
               width={w}
               height={h}
-              fill="rgba(251, 191, 36, 0.18)"
-              stroke="#D97706"
+              fill={disabled ? 'rgba(156, 163, 175, 0.10)' : 'rgba(251, 191, 36, 0.18)'}
+              stroke={disabled ? '#9CA3AF' : '#D97706'}
               strokeWidth={2.5}
               strokeDasharray="8 4"
               rx={10}
-              className="transition-all duration-200 hover:fill-[rgba(251,191,36,0.35)]"
-              style={{ cursor: 'pointer' }}
+              className={disabled
+                ? 'animate-pulse-soft'
+                : 'transition-all duration-200 hover:fill-[rgba(251,191,36,0.35)]'}
+              style={{ cursor: disabled ? 'wait' : 'pointer' }}
             />
-            {/* Clickable area — full opacity for click capture */}
+            {/* Clickable area */}
             <rect
               x={x}
               y={y}
@@ -81,11 +87,12 @@ export default function HotspotOverlay({
               fill="transparent"
               rx={10}
               role="button"
-              aria-label={obj.label}
-              tabIndex={0}
-              style={{ cursor: 'pointer' }}
-              onClick={() => onSelect(obj)}
+              aria-label={disabled ? `${obj.label} (generating...)` : obj.label}
+              tabIndex={disabled ? -1 : 0}
+              style={{ cursor: disabled ? 'wait' : 'pointer' }}
+              onClick={() => { if (!disabled) onSelect(obj); }}
               onKeyDown={(e) => {
+                if (disabled) return;
                 if (e.key === 'Enter' || e.key === ' ') onSelect(obj);
               }}
             />
@@ -93,18 +100,24 @@ export default function HotspotOverlay({
             <foreignObject
               x={labelX}
               y={labelY}
-              width={84}
+              width={disabled ? 120 : 84}
               height={24}
               pointerEvents="none"
             >
-              <div className="flex items-center">
+              <div className="flex items-center gap-1.5">
                 <span
-                  className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold
-                             bg-amber-500 text-white shadow-md
-                             whitespace-nowrap"
+                  className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold
+                             whitespace-nowrap shadow-md ${
+                               disabled
+                                 ? 'bg-gray-400 text-white'
+                                 : 'bg-amber-500 text-white'
+                             }`}
                 >
                   {obj.label}
                 </span>
+                {disabled && (
+                  <span className="inline-block w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                )}
               </div>
             </foreignObject>
           </g>

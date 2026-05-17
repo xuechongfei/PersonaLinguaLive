@@ -15,6 +15,7 @@ interface ChatMessage {
 interface Props {
   client: ChatClient;
   personaName: string;
+  spriteBase64?: string;
   onEndChat?: () => void;
   onTurnComplete?: (turn: {
     userMessage: string;
@@ -23,7 +24,7 @@ interface Props {
   }) => void;
 }
 
-export default function ChatPanel({ client, personaName, onEndChat, onTurnComplete }: Props) {
+export default function ChatPanel({ client, personaName, spriteBase64, onEndChat, onTurnComplete }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -135,7 +136,15 @@ export default function ChatPanel({ client, personaName, onEndChat, onTurnComple
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3.5 border-b border-sand/60">
         <div className="flex items-center gap-3">
-          <PersonaMouth isSpeaking={isSpeaking} analyserNode={analyserNode} />
+          {spriteBase64 ? (
+            <img
+              src={`data:${spriteBase64.startsWith('/9j/') ? 'image/jpeg' : 'image/png'};base64,${spriteBase64}`}
+              alt={personaName}
+              className={`w-10 h-10 rounded-full object-cover border-2 transition-colors ${isSpeaking ? 'border-honey' : 'border-sand'}`}
+            />
+          ) : (
+            <PersonaMouth isSpeaking={isSpeaking} analyserNode={analyserNode} />
+          )}
           <div>
             <h2 className="font-semibold text-sm text-ink">{personaName}</h2>
             <p className={`text-xs font-medium transition-colors ${isSpeaking ? 'text-honey' : isStreaming ? 'text-teal' : 'text-ink-light'}`}>

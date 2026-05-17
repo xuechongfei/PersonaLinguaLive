@@ -13,7 +13,7 @@ export type StudioStatus =
   | { kind: 'ready'; result: VisionAnalyzeResponse }
   | { kind: 'error'; message: string }
   | { kind: 'persona_loading'; object: Entity }
-  | { kind: 'chatting'; personaName: string; sessionId: string }
+  | { kind: 'chatting'; personaName: string; sessionId: string; entityId: string }
   | { kind: 'summary'; data: SummaryData; personaName: string };
 
 interface StudioState {
