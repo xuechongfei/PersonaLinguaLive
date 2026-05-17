@@ -245,34 +245,6 @@ export default function StudioPage() {
                 disabled={!worldReady}
               />
             )}
-
-            {/* NPC sprites overlay */}
-            {worldSprites.length > 0 && imageSize && (
-              <svg
-                className="absolute inset-0 pointer-events-none"
-                width={imageSize.renderedWidth}
-                height={imageSize.renderedHeight}
-                viewBox={`0 0 ${imageSize.renderedWidth} ${imageSize.renderedHeight}`}
-              >
-                {worldSprites.map((s) => {
-                  const sx = s.position_x * imageSize.renderedWidth;
-                  const sy = s.position_y * imageSize.renderedHeight;
-                  const size = Math.min(imageSize.renderedWidth, imageSize.renderedHeight) * 0.15;
-                  return (
-                    <image
-                      key={s.entity_id}
-                      href={`data:${s.sprites.default.startsWith('/9j/') ? 'image/jpeg' : 'image/png'};base64,${s.sprites.default}`}
-                      x={sx - size / 2}
-                      y={sy - size / 2}
-                      width={size}
-                      height={size}
-                    />
-                  );
-                })}
-              </svg>
-            )}
-
-
           </div>
 
           {/* Status bar */}
