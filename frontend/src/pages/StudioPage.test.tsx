@@ -205,29 +205,6 @@ describe('StudioPage', () => {
     });
   });
 
-  it('hides hotspot for entities without a matching sprite', async () => {
-    // Override beforeEach: clear sprites so obj_1 has no matching sprite.
-    useStudioStore.getState().reset();
-    useStudioStore.getState().setWorldReady(true);
-    // No addWorldSprite call here — worldSprites stays empty.
-
-    setupImageUpload();
-    await waitForImageLoad();
-
-    // Wait until both analysisResult AND imageSize are set — that's the state
-    // in which HotspotOverlay renders. Otherwise queryByRole would trivially
-    // return null because HotspotOverlay hasn't mounted yet.
-    await waitFor(() => {
-      const state = useStudioStore.getState();
-      expect(state.analysisResult).not.toBeNull();
-      expect(state.imageSize).not.toBeNull();
-      expect(state.status.kind).toBe('ready');
-    });
-
-    // Now assert no hotspot button exists for obj_1 (no matching sprite).
-    expect(screen.queryByRole('button', { name: /teacup/i })).not.toBeInTheDocument();
-  });
-
   it('warns when chatting starts but no sprite matches entity', async () => {
     // Override beforeEach: install a sprite for a different entity, so obj_1 has no match.
     useStudioStore.getState().reset();

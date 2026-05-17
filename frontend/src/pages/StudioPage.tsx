@@ -37,12 +37,6 @@ export default function StudioPage() {
     ? worldSprites.find((s) => s.entity_id === status.entityId)
     : null;
 
-  const interactiveEntities = analysisResult
-    ? analysisResult.entities.filter(
-        (e) => worldSprites.some((s) => s.entity_id === e.id)
-      )
-    : [];
-
   const store = useStudioStore;
 
   useEffect(() => {
@@ -57,6 +51,19 @@ export default function StudioPage() {
       });
     }
   }, [status, chattingSprite, worldSprites]);
+
+  useEffect(() => {
+    if (!worldReady || !analysisResult || analysisResult.entities.length === 0) return;
+    const entityIds = analysisResult.entities.map((e) => e.id);
+    const spriteIds = worldSprites.map((s) => s.entity_id);
+    const matched = entityIds.filter((id) => spriteIds.includes(id));
+    if (matched.length === 0) {
+      console.warn('No sprites match any entity id — LLM likely reassigned entity_id', {
+        entityIds,
+        spriteIds,
+      });
+    }
+  }, [worldReady, analysisResult, worldSprites]);
 
   async function handleLevelChange(next: UserLevel) {
     store.getState().setLevel(next);
@@ -247,7 +254,7 @@ export default function StudioPage() {
               <HotspotOverlay
                 renderedWidth={imageSize.renderedWidth}
                 renderedHeight={imageSize.renderedHeight}
-                objects={interactiveEntities}
+                objects={analysisResult.entities}
                 onSelect={handleSelectObject}
                 disabled={!worldReady}
               />
