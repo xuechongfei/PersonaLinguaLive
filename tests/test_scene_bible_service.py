@@ -78,3 +78,73 @@ async def test_generate_with_retry_on_failure():
     service = SceneBibleService(llm=llm, world_store=None)
     bible = await service.generate(raw_scene="x", entities=[])
     assert bible.world.place == "park"
+
+
+@pytest.mark.asyncio
+async def test_generate_realigns_entity_ids_back_to_input():
+    """LLM frequently reassigns entity_id; the service must rewrite them
+    back to the vision-provided ids by position so sprite ids match
+    downstream consumers (chat orchestrator, hotspot click handler)."""
+    from app.services.scene_bible import SceneBibleService
+
+    bible_json = json.dumps({
+        "world": {"place": "cafe", "time_of_day": "afternoon", "weather": "sunny",
+                  "mood": "cozy", "ambient_sounds": [], "bgm_mood": "warm",
+                  "art_style_prompt": "watercolor"},
+        "npcs": [
+            {"entity_id": "e1", "kind": "object", "persona_name": "Mocha",
+             "role_in_scene": "coffee", "relationship_to_user": "friend",
+             "personality": "warm", "voice_traits": {"gender": "female", "age": "adult", "tone": "warm"},
+             "vocab_focus": [], "ambient_actions": []},
+            {"entity_id": "e2", "kind": "character", "persona_name": "Iris",
+             "role_in_scene": "barista", "relationship_to_user": "host",
+             "personality": "friendly", "voice_traits": {"gender": "female", "age": "adult", "tone": "warm"},
+             "vocab_focus": [], "ambient_actions": []},
+        ],
+        "cross_relationships": [
+            {"from_entity": "e1", "to_entity": "e2", "note": "served by"}
+        ],
+    })
+
+    llm = FakeLLM([bible_json])
+    service = SceneBibleService(llm=llm, world_store=None)
+    bible = await service.generate(
+        raw_scene="A cafe",
+        entities=[
+            {"id": "obj_a", "kind": "object", "label": "teacup", "salience": 0.9},
+            {"id": "obj_b", "kind": "character", "label": "barista", "salience": 0.8},
+        ],
+    )
+
+    assert [n.entity_id for n in bible.npcs] == ["obj_a", "obj_b"]
+    assert bible.cross_relationships[0].from_entity == "obj_a"
+    assert bible.cross_relationships[0].to_entity == "obj_b"
+
+
+@pytest.mark.asyncio
+async def test_generate_skips_alignment_when_ids_already_match():
+    """When the LLM honors the prompt and copies entity_id verbatim,
+    the alignment pass is a no-op (no remapping, no cross-rel rewriting)."""
+    from app.services.scene_bible import SceneBibleService
+
+    bible_json = json.dumps({
+        "world": {"place": "cafe", "time_of_day": "afternoon", "weather": "sunny",
+                  "mood": "cozy", "ambient_sounds": [], "bgm_mood": "warm",
+                  "art_style_prompt": "watercolor"},
+        "npcs": [
+            {"entity_id": "obj_a", "kind": "object", "persona_name": "Mocha",
+             "role_in_scene": "coffee", "relationship_to_user": "friend",
+             "personality": "warm", "voice_traits": {"gender": "female", "age": "adult", "tone": "warm"},
+             "vocab_focus": [], "ambient_actions": []},
+        ],
+        "cross_relationships": [],
+    })
+
+    llm = FakeLLM([bible_json])
+    service = SceneBibleService(llm=llm, world_store=None)
+    bible = await service.generate(
+        raw_scene="A cafe",
+        entities=[{"id": "obj_a", "kind": "object", "label": "teacup", "salience": 0.9}],
+    )
+
+    assert bible.npcs[0].entity_id == "obj_a"
