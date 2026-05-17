@@ -15,7 +15,6 @@ export interface WorldSprite {
 
 export type WorldEvent =
   | { type: 'scene_bible_ready'; bible: any }
-  | { type: 'background_ready'; imageBase64: string }
   | { type: 'npc_sprite_ready'; sprite: WorldSprite }
   | { type: 'world_ready' }
   | { type: 'error'; message: string };
@@ -85,9 +84,6 @@ export class WorldClient {
               switch (eventType) {
                 case 'scene_bible_ready':
                   this._emit({ type: 'scene_bible_ready', bible: parsed });
-                  break;
-                case 'background_ready':
-                  this._emit({ type: 'background_ready', imageBase64: parsed.image_base64 || '' });
                   break;
                 case 'npc_sprite_ready':
                   this._emit({ type: 'npc_sprite_ready', sprite: parsed as WorldSprite });

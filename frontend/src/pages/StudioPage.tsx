@@ -88,9 +88,7 @@ export default function StudioPage() {
       if (result.world_id) {
         const wc = new WorldClient(result.world_id);
         wc.on((ev) => {
-          if (ev.type === 'background_ready') {
-            store.getState().setWorldBackground(ev.imageBase64);
-          } else if (ev.type === 'npc_sprite_ready') {
+          if (ev.type === 'npc_sprite_ready') {
             store.getState().addWorldSprite(ev.sprite);
           } else if (ev.type === 'world_ready') {
             store.getState().setWorldReady(true);

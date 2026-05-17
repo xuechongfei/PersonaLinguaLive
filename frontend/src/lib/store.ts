@@ -28,7 +28,6 @@ interface StudioState {
   level: UserLevel;
   analyserNode: AnalyserNode | undefined;
   isSpeaking: boolean;
-  worldBackground: string | null;
   worldSprites: WorldSprite[];
   worldReady: boolean;
 
@@ -43,7 +42,6 @@ interface StudioState {
   setLevel: (l: UserLevel) => void;
   setAnalyserNode: (n: AnalyserNode | undefined) => void;
   setIsSpeaking: (v: boolean) => void;
-  setWorldBackground: (b: string | null) => void;
   addWorldSprite: (s: WorldSprite) => void;
   setWorldReady: (v: boolean) => void;
   reset: () => void;
@@ -61,7 +59,6 @@ export const useStudioStore = create<StudioState>((set) => ({
   level: 'beginner',
   analyserNode: undefined,
   isSpeaking: false,
-  worldBackground: null,
   worldSprites: [],
   worldReady: false,
 
@@ -76,7 +73,6 @@ export const useStudioStore = create<StudioState>((set) => ({
   setLevel: (l) => set({ level: l }),
   setAnalyserNode: (n) => set({ analyserNode: n }),
   setIsSpeaking: (v) => set({ isSpeaking: v }),
-  setWorldBackground: (b) => set({ worldBackground: b }),
   addWorldSprite: (s) => set((st) => ({ worldSprites: [...st.worldSprites, s] })),
   setWorldReady: (v) => set({ worldReady: v }),
 
@@ -95,7 +91,6 @@ export const useStudioStore = create<StudioState>((set) => ({
       level: 'beginner',
       analyserNode: undefined,
       isSpeaking: false,
-      worldBackground: null,
       worldSprites: [],
       worldReady: false,
     });
