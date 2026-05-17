@@ -7,7 +7,7 @@ import SummaryCard from '../components/SummaryCard';
 import type { SummaryData } from '../components/SummaryCard';
 import LevelSelector, { type UserLevel } from '../components/LevelSelector';
 import SceneGallery from '../components/SceneGallery';
-import SpeakingOverlay from '../components/SpeakingOverlay';
+
 import { analyzeImage, fetchSummary, ApiError } from '../lib/api';
 import type { Entity } from '../lib/api';
 import { ChatClient } from '../lib/chat';
@@ -28,10 +28,20 @@ export default function StudioPage() {
   const imageSize = useStudioStore((s) => s.imageSize);
   const level = useStudioStore((s) => s.level);
   const analysisResult = useStudioStore((s) => s.analysisResult);
-  const selectedObject = useStudioStore((s) => s.selectedObject);
+
   const chatClient = useStudioStore((s) => s.chatClient);
-  const worldBackground = useStudioStore((s) => s.worldBackground);
   const worldSprites = useStudioStore((s) => s.worldSprites);
+  const worldReady = useStudioStore((s) => s.worldReady);
+
+  const chattingSprite = status.kind === 'chatting'
+    ? worldSprites.find((s) => s.entity_id === status.entityId)
+    : null;
+
+  const interactiveEntities = analysisResult
+    ? analysisResult.entities.filter(
+        (e) => worldSprites.some((s) => s.entity_id === e.id)
+      )
+    : [];
 
   const store = useStudioStore;
 
@@ -142,7 +152,7 @@ export default function StudioPage() {
       store.getState().setSessionId(sessionId);
       store.getState().setConversation(conv);
       store.getState().setChatClient(client);
-      store.getState().setStatus({ kind: 'chatting', personaName, sessionId });
+      store.getState().setStatus({ kind: 'chatting', personaName, sessionId, entityId: obj.id });
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'Failed to start chat.';
       store.getState().setStatus({ kind: 'error', message: msg });
@@ -224,32 +234,15 @@ export default function StudioPage() {
       {file && (
         <section className="mx-auto w-full max-w-3xl animate-pop-in">
           <div className="relative inline-block rounded-3xl overflow-hidden shadow-card">
-            {/* Show cartoon world when background is ready, otherwise original photo */}
-            {worldBackground ? (
-              <img
-                src={`data:image/png;base64,${worldBackground}`}
-                alt="Cartoon scene"
-                className="block max-w-full h-auto rounded-3xl"
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  store.getState().setImageSize({
-                    naturalWidth: img.naturalWidth,
-                    naturalHeight: img.naturalHeight,
-                    renderedWidth: img.clientWidth || img.naturalWidth,
-                    renderedHeight: img.clientHeight || img.naturalHeight,
-                  });
-                }}
-              />
-            ) : (
-              <ImageCanvas file={file} alt="Selected" onReady={handleImageReady} />
-            )}
+            <ImageCanvas file={file} alt="Selected" onReady={handleImageReady} />
 
             {(status.kind === 'ready' || status.kind === 'chatting') && imageSize && analysisResult && (
               <HotspotOverlay
                 renderedWidth={imageSize.renderedWidth}
                 renderedHeight={imageSize.renderedHeight}
-                objects={analysisResult.entities}
+                objects={interactiveEntities}
                 onSelect={handleSelectObject}
+                disabled={!worldReady}
               />
             )}
 
@@ -268,7 +261,7 @@ export default function StudioPage() {
                   return (
                     <image
                       key={s.entity_id}
-                      href={`data:image/png;base64,${s.sprites.default}`}
+                      href={`data:${s.sprites.default.startsWith('/9j/') ? 'image/jpeg' : 'image/png'};base64,${s.sprites.default}`}
                       x={sx - size / 2}
                       y={sy - size / 2}
                       width={size}
@@ -279,12 +272,7 @@ export default function StudioPage() {
               </svg>
             )}
 
-            {status.kind === 'chatting' && imageSize && selectedObject && (
-              <SpeakingOverlay
-                renderedWidth={imageSize.renderedWidth}
-                renderedHeight={imageSize.renderedHeight}
-              />
-            )}
+
           </div>
 
           {/* Status bar */}
@@ -300,7 +288,14 @@ export default function StudioPage() {
               </span>
             )}
 
-            {status.kind === 'ready' && analysisResult && (
+            {status.kind === 'ready' && analysisResult && !worldReady && (
+              <span className="inline-flex items-center gap-2 text-sm text-ink-light">
+                <span className="w-2 h-2 rounded-full bg-teal animate-pulse-soft" />
+                Generating cartoons... ({worldSprites.length}/{analysisResult.entities.length})
+              </span>
+            )}
+
+            {status.kind === 'ready' && analysisResult && worldReady && (
               <span className="text-sm text-ink-light font-medium">
                 {analysisResult.entities.length} object{analysisResult.entities.length > 1 ? 's' : ''} found — tap one to start
               </span>
@@ -328,6 +323,7 @@ export default function StudioPage() {
         <ChatPanel
           client={chatClient}
           personaName={status.personaName}
+          spriteBase64={chattingSprite?.sprites.default}
           onEndChat={handleEndChat}
           onTurnComplete={handleTurnComplete}
         />
