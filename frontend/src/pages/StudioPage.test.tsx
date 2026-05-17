@@ -52,9 +52,6 @@ vi.mock('../components/SceneGallery', () => ({
   default: () => <div data-testid="scene-gallery" />,
 }));
 
-vi.mock('../components/SpeakingOverlay', () => ({
-  default: () => null,
-}));
 
 vi.mock('../lib/image/compress', () => ({
   compressIfNeeded: async (f: File) => f,
@@ -83,6 +80,19 @@ const mockAnalyzeResponse = {
   ],
 };
 
+const mockSpriteForObj1 = {
+  entity_id: 'obj_1',
+  sprites: {
+    default: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+    blink: '',
+    mouth_a: '',
+    mouth_b: '',
+    mouth_c: '',
+  },
+  position_x: 0.2,
+  position_y: 0.2,
+};
+
 const mockSummaryResponse = {
   new_words: [{ word: 'teacup', definition: 'small cup', example: 'A teacup.' }],
   grammar_points: ['Greetings'],
@@ -95,6 +105,8 @@ describe('StudioPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useStudioStore.getState().reset();
+    useStudioStore.getState().setWorldReady(true);
+    useStudioStore.getState().addWorldSprite(mockSpriteForObj1);
     URL.createObjectURL = vi.fn(() => 'blob:fake') as typeof URL.createObjectURL;
     URL.revokeObjectURL = vi.fn();
     Element.prototype.scrollIntoView = vi.fn();
